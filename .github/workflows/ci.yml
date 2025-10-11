@@ -26,9 +26,9 @@ jobs:
         options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.11
 
@@ -81,17 +81,20 @@ jobs:
 
   frontend:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: front
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: front/package-lock.json
       - name: Install dependencies
-        run: |
-          cd front
-          npm ci
+        run: npm ci
+      - name: Run lint
+        run: npm run lint
       - name: Run build
-        run: |
-          cd front
-          npm run build
+        run: npm run build
