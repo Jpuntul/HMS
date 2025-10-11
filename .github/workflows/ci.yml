@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: back
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python
@@ -24,11 +24,11 @@ jobs:
         pip install -r backend/requirements.txt
     - name: Run migrations
       run: |
-        cd backend
+        cd back
         python manage.py migrate
     - name: Run tests
       run: |
-        cd backend
+        cd back
         python manage.py test
 
   frontend:
@@ -41,9 +41,9 @@ jobs:
         node-version: 18
     - name: Install dependencies
       run: |
-        cd frontend
+        cd front
         npm ci
     - name: Run build
       run: |
-        cd frontend
+        cd front
         npm run build
