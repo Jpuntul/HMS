@@ -23,7 +23,7 @@ jobs:
           MYSQL_PASSWORD: ${{ secrets.DB_PASSWORD }}
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+        options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
       - uses: actions/checkout@v3
@@ -41,17 +41,27 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-        env:
-          DB_HOST: localhost
-          DB_PORT: 3306
-          DB_NAME: ${{ secrets.DB_NAME }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+
+      - name: Wait for MySQL
+        run: |
+          for i in {30..0}; do
+            if mysqladmin ping -h 127.0.0.1 --silent; then
+              echo "MySQL is ready"
+              break
+            fi
+            echo "Waiting for MySQL..."
+            sleep 1
+          done
+          if [ "$i" = 0 ]; then
+            echo "MySQL failed to start"
+            exit 1
+          fi
+
       - name: Run migrations
         run: |
           python manage.py migrate
         env:
-          DB_HOST: localhost
+          DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
@@ -62,7 +72,7 @@ jobs:
         run: |
           python manage.py test
         env:
-          DB_HOST: localhost
+          DB_HOST: 127.0.0.1
           DB_PORT: 3306
           DB_NAME: ${{ secrets.DB_NAME }}
           DB_USER: ${{ secrets.DB_USER }}
