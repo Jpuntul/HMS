@@ -25,12 +25,18 @@ const PersonList: React.FC = () => {
   }, []);
 
   return (
-    <div>
-      <h2>Person List</h2>
-      <ul>
+    <div className="container mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-4 text-gray-800">Person List</h2>
+      <ul className="space-y-2">
         {persons.map((p) => (
-          <li key={p.id}>
-            {p.first_name} {p.last_name} ({p.ssn})
+          <li
+            key={p.id}
+            className="bg-white p-4 rounded-lg shadow border hover:shadow-md transition-shadow"
+          >
+            <span className="font-medium text-gray-900">
+              {p.first_name} {p.last_name}
+            </span>
+            <span className="text-gray-600 ml-2">({p.ssn})</span>
           </li>
         ))}
       </ul>
