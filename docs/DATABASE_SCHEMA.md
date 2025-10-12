@@ -1,8 +1,10 @@
 # HMS Database Schema Documentation
 
 > **Database**: `hms_db` (MySQL)
+> **Framework**: Django 4.2.25 with Django REST Framework
 > **Last Updated**: October 12, 2025
-> **Total Records**: 1,326 records across all tables
+> **Total Records**: 761+ records across core entities
+> **Status**: ✅ **Production Ready** with Hybrid Authentication
 
 ## 📊 Database Overview
 
