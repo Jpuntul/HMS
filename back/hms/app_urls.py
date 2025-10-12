@@ -7,6 +7,11 @@ from .views import (
     FacilityListCreateView,
     FacilityDetailView,
 )
+from .analytics import (
+    dashboard_stats,
+    facility_analytics,
+    person_demographics,
+)
 
 urlpatterns = [
     # Person endpoints
@@ -24,4 +29,8 @@ urlpatterns = [
     path(
         "facilities/<int:pk>/", FacilityDetailView.as_view(), name="facility-detail"
     ),  # FID is int
+    # Analytics endpoints
+    path("analytics/dashboard/", dashboard_stats, name="dashboard-stats"),
+    path("analytics/facilities/", facility_analytics, name="facility-analytics"),
+    path("analytics/demographics/", person_demographics, name="person-demographics"),
 ]

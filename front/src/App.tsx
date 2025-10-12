@@ -4,12 +4,14 @@ import AddPerson from "./pages/AddPerson";
 import EditPerson from "./pages/EditPerson";
 import EmployeeList from "./pages/EmployeeList";
 import FacilityList from "./pages/FacilityList";
+import Dashboard from "./pages/Dashboard";
 import {
   HomeIcon,
   UserIcon,
   UserGroupIcon,
   BuildingOffice2Icon,
   PlusIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 
 function App() {
@@ -19,9 +21,7 @@ function App() {
         <nav className="bg-white shadow-sm border-b">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">
-                HMS - Hospital Management System
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-900">HMS</h1>
               <div className="flex items-center space-x-4">
                 <Link
                   to="/"
@@ -29,6 +29,13 @@ function App() {
                 >
                   <HomeIcon className="h-4 w-4" />
                   <span>Home</span>
+                </Link>
+                <Link
+                  to="/dashboard"
+                  className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                >
+                  <ChartBarIcon className="h-4 w-4" />
+                  <span>Dashboard</span>
                 </Link>
                 <Link
                   to="/persons"
@@ -81,7 +88,20 @@ function App() {
                       data, employee records, and facility information.
                     </p>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <Link
+                        to="/dashboard"
+                        className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 hover:bg-indigo-100 transition-colors group"
+                      >
+                        <ChartBarIcon className="h-12 w-12 text-indigo-600 mb-3 group-hover:scale-110 transition-transform" />
+                        <h3 className="text-xl font-semibold text-indigo-900 mb-2">
+                          Analytics Dashboard
+                        </h3>
+                        <p className="text-indigo-700">
+                          View comprehensive system analytics and insights
+                        </p>
+                      </Link>
+
                       <Link
                         to="/persons"
                         className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition-colors group"
@@ -125,6 +145,7 @@ function App() {
                 </div>
               }
             />
+            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/persons" element={<PersonList />} />
             <Route path="/persons/add" element={<AddPerson />} />
             <Route path="/persons/:id/edit" element={<EditPerson />} />
