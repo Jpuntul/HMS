@@ -2,6 +2,19 @@ import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import {
+  UserIcon,
+  UserGroupIcon,
+  BuildingOfficeIcon,
+  PlusIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  BriefcaseIcon,
+  IdentificationIcon,
+  CalendarDaysIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
 
 export interface Person {
   id: number;
@@ -72,75 +85,185 @@ const PersonList: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Person List</h1>
-        <Link
-          to="/persons/add"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-        >
-          Add Person
-        </Link>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="bg-white shadow-sm rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <UserIcon className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Person Management
+                  </h1>
+                  <p className="text-gray-600 mt-2">
+                    Manage patient records and personal information
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                <Link
+                  to="/employees"
+                  className="flex items-center space-x-2 px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                >
+                  <UserGroupIcon className="h-4 w-4" />
+                  <span>View Employees</span>
+                </Link>
+                <Link
+                  to="/facilities"
+                  className="flex items-center space-x-2 px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                  <BuildingOfficeIcon className="h-4 w-4" />
+                  <span>View Facilities</span>
+                </Link>
+                <Link
+                  to="/persons/add"
+                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Add Person</span>
+                </Link>
+              </div>
+            </div>
+          </div>
 
-      {successMessage && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-600">{successMessage}</p>
+          {/* Stats */}
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {persons.length}
+                </div>
+                <div className="text-blue-800 font-medium">Total Persons</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {persons.filter((p) => p.email).length}
+                </div>
+                <div className="text-green-800 font-medium">With Email</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {persons.filter((p) => p.occupation).length}
+                </div>
+                <div className="text-purple-800 font-medium">
+                  With Occupation
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
 
-      {persons.length === 0 ? (
-        <div className="text-center text-gray-500">No persons found</div>
-      ) : (
-        <div className="grid gap-4">
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
+        {/* Person Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {persons.map((person) => (
             <div
               key={person.id}
-              className="bg-white p-6 rounded-lg shadow-md border hover:shadow-lg transition-shadow"
+              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-gray-900">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-lg font-semibold text-gray-900">
                     {person.first_name} {person.last_name}
-                  </h2>
-                  <p className="text-gray-600 mt-1">SSN: {person.ssn}</p>
-                  <p className="text-gray-600">Medicare: {person.medicare}</p>
-                  <p className="text-gray-600">DOB: {person.dob}</p>
+                  </div>
                 </div>
-                <div className="text-right text-sm text-gray-500 flex-1">
-                  {person.email && <p>📧 {person.email}</p>}
-                  {person.telephone && <p>📞 {person.telephone}</p>}
-                  {person.occupation && <p>💼 {person.occupation}</p>}
+
+                <div className="space-y-2 text-sm text-gray-600 mb-4">
+                  <div className="flex items-center space-x-2">
+                    <IdentificationIcon className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">SSN:</span>
+                    <span>{person.ssn}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <IdentificationIcon className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">Medicare:</span>
+                    <span>{person.medicare}</span>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <CalendarDaysIcon className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">DOB:</span>
+                    <span>{person.dob}</span>
+                  </div>
+
+                  {person.email && (
+                    <div className="flex items-center space-x-2">
+                      <EnvelopeIcon className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">Email:</span>
+                      <span className="truncate">{person.email}</span>
+                    </div>
+                  )}
+
+                  {person.telephone && (
+                    <div className="flex items-center space-x-2">
+                      <PhoneIcon className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">Phone:</span>
+                      <span>{person.telephone}</span>
+                    </div>
+                  )}
+
+                  {person.occupation && (
+                    <div className="flex items-center space-x-2">
+                      <BriefcaseIcon className="h-4 w-4 text-gray-400" />
+                      <span className="font-medium">Occupation:</span>
+                      <span>{person.occupation}</span>
+                    </div>
+                  )}
                 </div>
-                <div className="ml-4 flex flex-col space-y-2">
-                  <Link
-                    to={`/persons/${person.id}/edit`}
-                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                  >
-                    Edit
-                  </Link>
-                  <button
-                    onClick={() => handleDeleteClick(person)}
-                    className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                  >
-                    Delete
-                  </button>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <div className="flex space-x-2">
+                    <Link
+                      to={`/persons/${person.medicare}/edit`}
+                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                    >
+                      <PencilIcon className="h-3 w-3" />
+                      <span>Edit</span>
+                    </Link>
+                    <button
+                      onClick={() => handleDeleteClick(person)}
+                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                    >
+                      <TrashIcon className="h-3 w-3" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      )}
 
-      {/* Delete Confirmation Modal */}
-      {personToDelete && (
-        <DeleteConfirmationModal
-          person={personToDelete}
-          isOpen={deleteModalOpen}
-          onClose={handleDeleteCancel}
-          onDelete={handleDeleteConfirm}
-        />
-      )}
+        {persons.length === 0 && (
+          <div className="bg-white rounded-lg shadow-md p-12 text-center">
+            <UserIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <div className="text-xl font-medium text-gray-900 mb-2">
+              No persons found
+            </div>
+            <div className="text-gray-600">
+              There are no persons in the system.
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {personToDelete && (
+          <DeleteConfirmationModal
+            person={personToDelete}
+            isOpen={deleteModalOpen}
+            onClose={handleDeleteCancel}
+            onDelete={handleDeleteConfirm}
+          />
+        )}
+      </div>
     </div>
   );
 };
