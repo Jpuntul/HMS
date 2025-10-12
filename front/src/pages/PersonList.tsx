@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
 
 export interface Person {
@@ -17,8 +18,17 @@ export interface Person {
 const PersonList: React.FC = () => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const location = useLocation();
 
   useEffect(() => {
+    // Check for success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(""), 5000);
+    }
+
     axios
       .get("http://localhost:8000/api/persons/")
       .then((response) => {
@@ -29,7 +39,7 @@ const PersonList: React.FC = () => {
         console.error(error);
         setLoading(false);
       });
-  }, []);
+  }, [location.state]);
 
   if (loading) {
     return (
@@ -41,7 +51,22 @@ const PersonList: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6 text-gray-900">Person List</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Person List</h1>
+        <Link
+          to="/persons/add"
+          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+        >
+          Add Person
+        </Link>
+      </div>
+
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <p className="text-green-600">{successMessage}</p>
+        </div>
+      )}
+
       {persons.length === 0 ? (
         <div className="text-center text-gray-500">No persons found</div>
       ) : (

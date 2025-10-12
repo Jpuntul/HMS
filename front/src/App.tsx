@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import PersonList from "./pages/PersonList";
+import AddPerson from "./pages/AddPerson";
 
 function App() {
   return (
@@ -24,6 +25,12 @@ function App() {
                 >
                   Persons
                 </Link>
+                <Link
+                  to="/persons/add"
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                >
+                  Add Person
+                </Link>
               </div>
             </div>
           </div>
@@ -46,6 +53,7 @@ function App() {
               }
             />
             <Route path="/persons" element={<PersonList />} />
+            <Route path="/persons/add" element={<AddPerson />} />
           </Routes>
         </main>
       </div>
