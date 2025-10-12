@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import SearchBar from "../components/SearchBar";
@@ -34,10 +34,6 @@ const EmployeeList: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState("");
   const { user } = useAuth();
 
-  useEffect(() => {
-    fetchEmployees();
-  }, [searchTerm, roleFilter]);
-
   const fetchEmployees = async () => {
     try {
       let url = "http://localhost:8000/api/employees/";
@@ -57,11 +53,16 @@ const EmployeeList: React.FC = () => {
       const response = await axios.get(url);
       setEmployees(response.data);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch employees");
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchEmployees();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, roleFilter]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors: { [key: string]: string } = {

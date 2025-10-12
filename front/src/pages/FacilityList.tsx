@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import {
@@ -46,6 +46,7 @@ const FacilityList: React.FC = () => {
 
   useEffect(() => {
     fetchFacilities();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, typeFilter]);
 
   const fetchFacilities = async () => {
@@ -67,7 +68,7 @@ const FacilityList: React.FC = () => {
       const response = await axios.get(url);
       setFacilities(response.data);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch facilities");
       setLoading(false);
     }

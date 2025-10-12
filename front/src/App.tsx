@@ -22,7 +22,7 @@ import {
 
 // Navigation component that uses auth context
 const AppNavigation: React.FC = () => {
-  const { user, logout, isAuthenticated } = useAuth();
+  const { user, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();

@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
       setDemographics(demographicsResponse.data);
       setFacilityAnalytics(facilityResponse.data);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch dashboard data");
       setLoading(false);
     }

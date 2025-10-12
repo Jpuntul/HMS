@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { UserPlusIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
+import { UserPlusIcon } from "@heroicons/react/24/outline";
 
 interface PersonFormData {
   ssn: string;
@@ -79,9 +79,9 @@ const AddPerson: React.FC = () => {
       navigate("/persons", {
         state: { message: "Person added successfully!" },
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error adding person:", error);
-      if (error.response?.data) {
+      if (axios.isAxiosError(error) && error.response?.data) {
         setErrors(error.response.data);
       } else {
         setErrors({ general: "Failed to add person. Please try again." });

@@ -104,9 +104,9 @@ const EditPerson: React.FC = () => {
       navigate("/persons", {
         state: { message: "Person updated successfully!" },
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error updating person:", error);
-      if (error.response?.data) {
+      if (axios.isAxiosError(error) && error.response?.data) {
         setErrors(error.response.data);
       } else {
         setErrors({ general: "Failed to update person. Please try again." });

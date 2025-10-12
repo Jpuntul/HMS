@@ -33,7 +33,7 @@ const Home: React.FC = () => {
       );
       setStats(response.data);
       setLoading(false);
-    } catch (error) {
+    } catch {
       setLoading(false);
     }
   };

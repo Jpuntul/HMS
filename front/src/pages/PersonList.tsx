@@ -83,6 +83,7 @@ const PersonList: React.FC = () => {
     }
 
     fetchPersons();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state, searchTerm, citizenshipFilter, occupationFilter]);
 
   // Get unique values for filters
@@ -265,7 +266,7 @@ const PersonList: React.FC = () => {
 
         {/* Person Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {persons.map((person) => (
+          {filteredPersons.map((person) => (
             <div
               key={person.id}
               className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"

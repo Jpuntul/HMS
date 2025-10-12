@@ -52,7 +52,7 @@ const Login: React.FC = () => {
         setError(result.error || "Login failed");
       }
       // If successful, user will be redirected by the Navigate component above
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
