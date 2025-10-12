@@ -12,6 +12,7 @@ def api_root(request):
                 "admin": "/admin/",
                 "api": "/api/",
                 "persons": "/api/persons/",
+                "person_detail": "/api/persons/{id}/",
             },
         }
     )

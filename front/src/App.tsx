@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import PersonList from "./pages/PersonList";
 import AddPerson from "./pages/AddPerson";
+import EditPerson from "./pages/EditPerson";
 
 function App() {
   return (
@@ -54,6 +55,7 @@ function App() {
             />
             <Route path="/persons" element={<PersonList />} />
             <Route path="/persons/add" element={<AddPerson />} />
+            <Route path="/persons/:id/edit" element={<EditPerson />} />
           </Routes>
         </main>
       </div>
