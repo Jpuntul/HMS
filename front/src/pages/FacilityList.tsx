@@ -13,6 +13,9 @@ import {
   GlobeAltIcon,
   HomeIcon,
 } from "@heroicons/react/24/outline";
+import SearchBar from "../components/SearchBar";
+import FilterDropdown from "../components/FilterDropdown";
+import SearchResultsHeader from "../components/SearchResultsHeader";
 
 interface Facility {
   fid: number;
@@ -33,14 +36,30 @@ const FacilityList: React.FC = () => {
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
 
   useEffect(() => {
     fetchFacilities();
-  }, []);
+  }, [searchTerm, typeFilter]);
 
   const fetchFacilities = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/facilities/");
+      let url = "http://localhost:8000/api/facilities/";
+      const params = new URLSearchParams();
+
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      if (typeFilter) {
+        params.append("type", typeFilter);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await axios.get(url);
       setFacilities(response.data);
       setLoading(false);
     } catch (err) {
@@ -139,6 +158,74 @@ const FacilityList: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Search and Filter */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1">
+                <SearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  placeholder="Search facilities by name, address, or city..."
+                  label="Search"
+                />
+              </div>
+              <div className="w-full sm:w-64">
+                <FilterDropdown
+                  label="Type"
+                  value={typeFilter}
+                  onChange={setTypeFilter}
+                  options={[
+                    {
+                      value: "Hospital",
+                      label: "Hospital",
+                      count: facilities.filter((f) => f.type === "Hospital")
+                        .length,
+                    },
+                    {
+                      value: "CLSC",
+                      label: "CLSC",
+                      count: facilities.filter((f) => f.type === "CLSC").length,
+                    },
+                    {
+                      value: "Clinic",
+                      label: "Clinic",
+                      count: facilities.filter((f) => f.type === "Clinic")
+                        .length,
+                    },
+                    {
+                      value: "Pharmacy",
+                      label: "Pharmacy",
+                      count: facilities.filter((f) => f.type === "Pharmacy")
+                        .length,
+                    },
+                    {
+                      value: "Special installment",
+                      label: "Special installment",
+                      count: facilities.filter(
+                        (f) => f.type === "Special installment",
+                      ).length,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Search Results Header */}
+          {(searchTerm || typeFilter) && (
+            <div className="px-6 py-3 bg-blue-50 border-b border-gray-200">
+              <SearchResultsHeader
+                totalResults={facilities.length}
+                searchTerm={searchTerm}
+                filterCount={typeFilter ? 1 : 0}
+                onClearFilters={() => {
+                  setSearchTerm("");
+                  setTypeFilter("");
+                }}
+              />
+            </div>
+          )}
 
           {/* Stats */}
           <div className="px-6 py-4">

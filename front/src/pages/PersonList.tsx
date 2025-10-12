@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import SearchBar from "../components/SearchBar";
+import FilterDropdown from "../components/FilterDropdown";
 import {
   UserIcon,
   UserGroupIcon,
@@ -31,16 +33,38 @@ export interface Person {
 
 const PersonList: React.FC = () => {
   const [persons, setPersons] = useState<Person[]>([]);
+  const [filteredPersons, setFilteredPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [personToDelete, setPersonToDelete] = useState<Person | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [citizenshipFilter, setCitizenshipFilter] = useState("");
+  const [occupationFilter, setOccupationFilter] = useState("");
   const location = useLocation();
 
   const fetchPersons = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/persons/");
+      let url = "http://localhost:8000/api/persons/";
+      const params = new URLSearchParams();
+
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      if (citizenshipFilter) {
+        params.append("citizenship", citizenshipFilter);
+      }
+      if (occupationFilter) {
+        params.append("occupation", occupationFilter);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await axios.get(url);
       setPersons(response.data);
+      setFilteredPersons(response.data);
     } catch (error) {
       console.error(error);
     } finally {
@@ -57,7 +81,27 @@ const PersonList: React.FC = () => {
     }
 
     fetchPersons();
-  }, [location.state]);
+  }, [location.state, searchTerm, citizenshipFilter, occupationFilter]);
+
+  // Get unique values for filters
+  const uniqueCitizenships = [
+    ...new Set(persons.filter((p) => p.citizenship).map((p) => p.citizenship)),
+  ];
+  const uniqueOccupations = [
+    ...new Set(persons.filter((p) => p.occupation).map((p) => p.occupation)),
+  ];
+
+  const citizenshipOptions = uniqueCitizenships.map((citizenship) => ({
+    value: citizenship!,
+    label: citizenship!,
+    count: persons.filter((p) => p.citizenship === citizenship).length,
+  }));
+
+  const occupationOptions = uniqueOccupations.map((occupation) => ({
+    value: occupation!,
+    label: occupation!,
+    count: persons.filter((p) => p.occupation === occupation).length,
+  }));
 
   const handleDeleteClick = (person: Person) => {
     setPersonToDelete(person);
@@ -153,6 +197,52 @@ const PersonList: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
+              <SearchBar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                placeholder="Search by name, SSN, Medicare, email..."
+                label="Search"
+                className="w-full"
+              />
+            </div>
+            <FilterDropdown
+              label="Citizenship"
+              value={citizenshipFilter}
+              onChange={setCitizenshipFilter}
+              options={citizenshipOptions}
+            />
+            <FilterDropdown
+              label="Occupation"
+              value={occupationFilter}
+              onChange={setOccupationFilter}
+              options={occupationOptions}
+            />
+          </div>
+
+          {(searchTerm || citizenshipFilter || occupationFilter) && (
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {persons.length} result{persons.length !== 1 ? "s" : ""} found
+                {searchTerm && ` for "${searchTerm}"`}
+              </div>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setCitizenshipFilter("");
+                  setOccupationFilter("");
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
         {successMessage && (

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import SearchBar from "../components/SearchBar";
+import FilterDropdown from "../components/FilterDropdown";
 import {
   UserGroupIcon,
   UserIcon,
@@ -24,14 +26,30 @@ const EmployeeList: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [searchTerm, roleFilter]);
 
   const fetchEmployees = async () => {
     try {
-      const response = await axios.get("http://localhost:8000/api/employees/");
+      let url = "http://localhost:8000/api/employees/";
+      const params = new URLSearchParams();
+
+      if (searchTerm) {
+        params.append("search", searchTerm);
+      }
+      if (roleFilter) {
+        params.append("role", roleFilter);
+      }
+
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+
+      const response = await axios.get(url);
       setEmployees(response.data);
       setLoading(false);
     } catch (err) {
@@ -136,6 +154,58 @@ const EmployeeList: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="md:col-span-2">
+              <SearchBar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                placeholder="Search by name, SSN, role..."
+                label="Search"
+                className="w-full"
+              />
+            </div>
+            <FilterDropdown
+              label="Role"
+              value={roleFilter}
+              onChange={setRoleFilter}
+              options={[
+                { value: "doctor", label: "Doctor" },
+                { value: "nurse", label: "Nurse" },
+                { value: "pharmacist", label: "Pharmacist" },
+                { value: "cashier", label: "Cashier" },
+                { value: "receptionist", label: "Receptionist" },
+                {
+                  value: "administrative personnel",
+                  label: "Administrative Personnel",
+                },
+                { value: "security personnel", label: "Security Personnel" },
+                { value: "regular employee", label: "Regular Employee" },
+              ]}
+            />
+          </div>
+
+          {(searchTerm || roleFilter) && (
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                {employees.length} employee{employees.length !== 1 ? "s" : ""}{" "}
+                found
+                {searchTerm && ` for "${searchTerm}"`}
+              </div>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setRoleFilter("");
+                }}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Clear all filters
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Employee Grid */}
