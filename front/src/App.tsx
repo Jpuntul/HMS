@@ -5,6 +5,7 @@ import EditPerson from "./pages/EditPerson";
 import EmployeeList from "./pages/EmployeeList";
 import FacilityList from "./pages/FacilityList";
 import Dashboard from "./pages/Dashboard";
+import Home from "./pages/Home";
 import {
   HomeIcon,
   UserIcon,
@@ -18,52 +19,62 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50">
-        <nav className="bg-white shadow-sm border-b">
+        <nav className="bg-white shadow-lg border-b border-gray-200">
           <div className="container mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">HMS</h1>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-2 rounded-lg">
+                  <BuildingOffice2Icon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    HMS
+                  </h1>
+                  <p className="text-xs text-gray-500">Healthcare Management</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-6">
                 <Link
                   to="/"
-                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 font-medium"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-all"
                 >
                   <HomeIcon className="h-4 w-4" />
                   <span>Home</span>
                 </Link>
                 <Link
                   to="/dashboard"
-                  className="flex items-center space-x-1 text-indigo-600 hover:text-indigo-800 font-medium"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-indigo-600 font-medium px-3 py-2 rounded-lg hover:bg-indigo-50 transition-all"
                 >
                   <ChartBarIcon className="h-4 w-4" />
                   <span>Dashboard</span>
                 </Link>
                 <Link
                   to="/persons"
-                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 font-medium"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-all"
                 >
                   <UserIcon className="h-4 w-4" />
-                  <span>Persons</span>
+                  <span>Patients</span>
                 </Link>
                 <Link
                   to="/employees"
-                  className="flex items-center space-x-1 text-green-600 hover:text-green-800 font-medium"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-green-600 font-medium px-3 py-2 rounded-lg hover:bg-green-50 transition-all"
                 >
                   <UserGroupIcon className="h-4 w-4" />
-                  <span>Employees</span>
+                  <span>Staff</span>
                 </Link>
                 <Link
                   to="/facilities"
-                  className="flex items-center space-x-1 text-purple-600 hover:text-purple-800 font-medium"
+                  className="flex items-center space-x-2 text-gray-600 hover:text-purple-600 font-medium px-3 py-2 rounded-lg hover:bg-purple-50 transition-all"
                 >
                   <BuildingOffice2Icon className="h-4 w-4" />
                   <span>Facilities</span>
                 </Link>
                 <Link
                   to="/persons/add"
-                  className="flex items-center space-x-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-indigo-700 font-medium shadow-md hover:shadow-lg transition-all"
                 >
                   <PlusIcon className="h-4 w-4" />
-                  <span>Add Person</span>
+                  <span>Add Patient</span>
                 </Link>
               </div>
             </div>
@@ -72,79 +83,7 @@ function App() {
 
         <main>
           <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="container mx-auto p-6">
-                  <div className="bg-white rounded-lg shadow-md p-8 mb-8">
-                    <div className="flex items-center space-x-3 mb-4">
-                      <BuildingOffice2Icon className="h-10 w-10 text-blue-600" />
-                      <h2 className="text-3xl font-bold text-gray-900">
-                        Welcome to HMS - Hospital Management System
-                      </h2>
-                    </div>
-                    <p className="text-gray-600 mb-6">
-                      Comprehensive healthcare management with real patient
-                      data, employee records, and facility information.
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <Link
-                        to="/dashboard"
-                        className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 hover:bg-indigo-100 transition-colors group"
-                      >
-                        <ChartBarIcon className="h-12 w-12 text-indigo-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="text-xl font-semibold text-indigo-900 mb-2">
-                          Analytics Dashboard
-                        </h3>
-                        <p className="text-indigo-700">
-                          View comprehensive system analytics and insights
-                        </p>
-                      </Link>
-
-                      <Link
-                        to="/persons"
-                        className="bg-blue-50 border border-blue-200 rounded-lg p-6 hover:bg-blue-100 transition-colors group"
-                      >
-                        <UserIcon className="h-12 w-12 text-blue-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="text-xl font-semibold text-blue-900 mb-2">
-                          Person Management
-                        </h3>
-                        <p className="text-blue-700">
-                          Manage patient records and personal information
-                        </p>
-                      </Link>
-
-                      <Link
-                        to="/employees"
-                        className="bg-green-50 border border-green-200 rounded-lg p-6 hover:bg-green-100 transition-colors group"
-                      >
-                        <UserGroupIcon className="h-12 w-12 text-green-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="text-xl font-semibold text-green-900 mb-2">
-                          Employee Management
-                        </h3>
-                        <p className="text-green-700">
-                          Track healthcare staff and their roles
-                        </p>
-                      </Link>
-
-                      <Link
-                        to="/facilities"
-                        className="bg-purple-50 border border-purple-200 rounded-lg p-6 hover:bg-purple-100 transition-colors group"
-                      >
-                        <BuildingOffice2Icon className="h-12 w-12 text-purple-600 mb-3 group-hover:scale-110 transition-transform" />
-                        <h3 className="text-xl font-semibold text-purple-900 mb-2">
-                          Facility Management
-                        </h3>
-                        <p className="text-purple-700">
-                          Oversee hospitals, clinics, and healthcare centers
-                        </p>
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              }
-            />
+            <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/persons" element={<PersonList />} />
             <Route path="/persons/add" element={<AddPerson />} />
