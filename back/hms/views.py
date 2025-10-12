@@ -1,5 +1,6 @@
 from rest_framework import generics
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from .models import Person, Employee, Facility
@@ -9,6 +10,7 @@ from .serializers import PersonSerializer, EmployeeSerializer, FacilitySerialize
 class PersonListCreateView(generics.ListCreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = [
         "first_name",
@@ -27,11 +29,13 @@ class PersonListCreateView(generics.ListCreateAPIView):
 class PersonDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["role"]
     ordering_fields = ["ssn", "role"]
@@ -66,11 +70,13 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class FacilityListCreateView(generics.ListCreateAPIView):
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = ["name", "address", "city", "type", "phone_number"]
     filterset_fields = ["type", "city", "province"]
@@ -81,3 +87,4 @@ class FacilityListCreateView(generics.ListCreateAPIView):
 class FacilityDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]

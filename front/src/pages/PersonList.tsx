@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../contexts/AuthContext";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
@@ -32,6 +33,8 @@ export interface Person {
 }
 
 const PersonList: React.FC = () => {
+  const location = useLocation();
+  const { isAuthenticated } = useAuth();
   const [persons, setPersons] = useState<Person[]>([]);
   const [filteredPersons, setFilteredPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +44,6 @@ const PersonList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [citizenshipFilter, setCitizenshipFilter] = useState("");
   const [occupationFilter, setOccupationFilter] = useState("");
-  const location = useLocation();
 
   const fetchPersons = async () => {
     try {
@@ -161,13 +163,23 @@ const PersonList: React.FC = () => {
                   <BuildingOfficeIcon className="h-4 w-4" />
                   <span>View Facilities</span>
                 </Link>
-                <Link
-                  to="/persons/add"
-                  className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Add Person</span>
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    to="/persons/add"
+                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Add Person</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Login to Add Person</span>
+                  </Link>
+                )}
               </div>
             </div>
           </div>
@@ -311,20 +323,31 @@ const PersonList: React.FC = () => {
 
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
-                    <Link
-                      to={`/persons/${person.medicare}/edit`}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
-                    >
-                      <PencilIcon className="h-3 w-3" />
-                      <span>Edit</span>
-                    </Link>
-                    <button
-                      onClick={() => handleDeleteClick(person)}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
-                    >
-                      <TrashIcon className="h-3 w-3" />
-                      <span>Delete</span>
-                    </button>
+                    {isAuthenticated ? (
+                      <>
+                        <Link
+                          to={`/persons/${person.medicare}/edit`}
+                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                        >
+                          <PencilIcon className="h-3 w-3" />
+                          <span>Edit</span>
+                        </Link>
+                        <button
+                          onClick={() => handleDeleteClick(person)}
+                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                        >
+                          <TrashIcon className="h-3 w-3" />
+                          <span>Delete</span>
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        to="/login"
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <span>Login to Edit/Delete</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

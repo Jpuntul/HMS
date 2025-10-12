@@ -12,10 +12,14 @@ import {
   EyeIcon,
   GlobeAltIcon,
   HomeIcon,
+  PlusIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
 import SearchResultsHeader from "../components/SearchResultsHeader";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Facility {
   fid: number;
@@ -38,6 +42,7 @@ const FacilityList: React.FC = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchFacilities();
@@ -141,6 +146,23 @@ const FacilityList: React.FC = () => {
                 </div>
               </div>
               <div className="flex space-x-3">
+                {user ? (
+                  <Link
+                    to="/add-facility"
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Add Facility</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Login to Add Facility</span>
+                  </Link>
+                )}
                 <Link
                   to="/persons"
                   className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
@@ -337,15 +359,26 @@ const FacilityList: React.FC = () => {
                       <EyeIcon className="h-3 w-3" />
                       <span>Details</span>
                     </button>
-                    <a
-                      href={facility.web_address}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
-                    >
-                      <GlobeAltIcon className="h-3 w-3" />
-                      <span>Website</span>
-                    </a>
+                    {user ? (
+                      <>
+                        <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
+                          <PencilIcon className="h-3 w-3" />
+                          <span>Edit</span>
+                        </button>
+                        <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
+                          <TrashIcon className="h-3 w-3" />
+                          <span>Delete</span>
+                        </button>
+                      </>
+                    ) : (
+                      <Link
+                        to="/login"
+                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
+                      >
+                        <GlobeAltIcon className="h-3 w-3" />
+                        <span>Login to Edit</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               </div>

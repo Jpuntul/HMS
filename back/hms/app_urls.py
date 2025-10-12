@@ -12,8 +12,21 @@ from .analytics import (
     facility_analytics,
     person_demographics,
 )
+from .auth_views import (
+    login_view,
+    logout_view,
+    profile_view,
+    register_view,
+    check_auth_view,
+)
 
 urlpatterns = [
+    # Authentication endpoints
+    path("auth/login/", login_view, name="login"),
+    path("auth/logout/", logout_view, name="logout"),
+    path("auth/profile/", profile_view, name="profile"),
+    path("auth/register/", register_view, name="register"),
+    path("auth/check/", check_auth_view, name="check-auth"),
     # Person endpoints
     path("persons/", PersonListCreateView.as_view(), name="person-list-create"),
     path(

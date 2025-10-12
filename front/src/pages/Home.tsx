@@ -89,17 +89,19 @@ const Home: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link
             to="/dashboard"
-            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group"
+            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group flex flex-col justify-between"
           >
-            <div className="bg-indigo-100 p-3 rounded-lg w-fit mb-4">
-              <ChartBarIcon className="h-8 w-8 text-indigo-600" />
+            <div>
+              <div className="bg-indigo-100 p-3 rounded-lg w-fit mb-4">
+                <ChartBarIcon className="h-8 w-8 text-indigo-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Analytics Dashboard
+              </h3>
+              <p className="text-gray-600 mb-4">
+                View comprehensive system analytics and insights
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Analytics Dashboard
-            </h3>
-            <p className="text-gray-600 mb-4">
-              View comprehensive system analytics and insights
-            </p>
             <div className="flex items-center text-indigo-600 font-medium">
               View Dashboard{" "}
               <ArrowRightIcon className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
@@ -108,55 +110,61 @@ const Home: React.FC = () => {
 
           <Link
             to="/persons"
-            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group"
+            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group flex flex-col justify-between"
           >
-            <div className="bg-blue-100 p-3 rounded-lg w-fit mb-4">
-              <UserIcon className="h-8 w-8 text-blue-600" />
+            <div>
+              <div className="bg-blue-100 p-3 rounded-lg w-fit mb-4">
+                <UserIcon className="h-8 w-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Patient Records
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Manage patient records and personal information
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Patient Records
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Manage patient records and personal information
-            </p>
             <div className="flex items-center text-blue-600 font-medium">
-              Manage Patients{" "}
+              View Patients{" "}
               <ArrowRightIcon className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
           <Link
             to="/employees"
-            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group"
+            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group flex flex-col justify-between"
           >
-            <div className="bg-green-100 p-3 rounded-lg w-fit mb-4">
-              <UserGroupIcon className="h-8 w-8 text-green-600" />
+            <div>
+              <div className="bg-green-100 p-3 rounded-lg w-fit mb-4">
+                <UserGroupIcon className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Staff Management
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Track healthcare staff and their roles
+              </p>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Staff Management
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Track healthcare staff and their roles
-            </p>
             <div className="flex items-center text-green-600 font-medium">
-              View Staff{" "}
+              View Employees{" "}
               <ArrowRightIcon className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
             </div>
           </Link>
 
           <Link
             to="/facilities"
-            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group"
+            className="bg-white rounded-lg p-6 shadow-md hover:shadow-lg transition-shadow group flex flex-col justify-between"
           >
             <div className="bg-purple-100 p-3 rounded-lg w-fit mb-4">
               <BuildingOffice2Icon className="h-8 w-8 text-purple-600" />
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Facility Network
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Oversee hospitals, clinics, and healthcare centers
-            </p>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Facility Network
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Oversee hospitals, clinics, and healthcare centers
+              </p>
+            </div>
             <div className="flex items-center text-purple-600 font-medium">
               View Facilities{" "}
               <ArrowRightIcon className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
