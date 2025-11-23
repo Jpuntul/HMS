@@ -19,6 +19,8 @@ import {
   BuildingOffice2Icon,
   UserGroupIcon,
   TruckIcon,
+  ShieldCheckIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 // Register Chart.js components
@@ -69,6 +71,27 @@ interface FacilityAnalytics {
   average_occupancy: number;
 }
 
+interface HealthStats {
+  infections: Array<{
+    ssn: number;
+    date: string;
+    type_id: number;
+    infection_type_name: string;
+  }>;
+  vaccinations: Array<{
+    ssn: number;
+    date: string;
+    type_id: number;
+    vaccine_type_name: string;
+    no_of_dose: number;
+  }>;
+  schedules: Array<{
+    essn: number;
+    date: string;
+    fid: number;
+  }>;
+}
+
 const Dashboard: React.FC = () => {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null,
@@ -78,6 +101,7 @@ const Dashboard: React.FC = () => {
   );
   const [facilityAnalytics, setFacilityAnalytics] =
     useState<FacilityAnalytics | null>(null);
+  const [healthStats, setHealthStats] = useState<HealthStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -88,16 +112,30 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsResponse, demographicsResponse, facilityResponse] =
-        await Promise.all([
-          axios.get("http://localhost:8000/api/analytics/dashboard/"),
-          axios.get("http://localhost:8000/api/analytics/demographics/"),
-          axios.get("http://localhost:8000/api/analytics/facilities/"),
-        ]);
+      const [
+        statsResponse,
+        demographicsResponse,
+        facilityResponse,
+        infectionsResponse,
+        vaccinationsResponse,
+        schedulesResponse,
+      ] = await Promise.all([
+        axios.get("http://localhost:8000/api/analytics/dashboard/"),
+        axios.get("http://localhost:8000/api/analytics/demographics/"),
+        axios.get("http://localhost:8000/api/analytics/facilities/"),
+        axios.get("http://localhost:8000/api/infections/"),
+        axios.get("http://localhost:8000/api/vaccinations/"),
+        axios.get("http://localhost:8000/api/schedules/"),
+      ]);
 
       setDashboardStats(statsResponse.data);
       setDemographics(demographicsResponse.data);
       setFacilityAnalytics(facilityResponse.data);
+      setHealthStats({
+        infections: infectionsResponse.data,
+        vaccinations: vaccinationsResponse.data,
+        schedules: schedulesResponse.data,
+      });
       setLoading(false);
     } catch {
       setError("Failed to fetch dashboard data");
@@ -113,7 +151,13 @@ const Dashboard: React.FC = () => {
     );
   }
 
-  if (error || !dashboardStats || !demographics || !facilityAnalytics) {
+  if (
+    error ||
+    !dashboardStats ||
+    !demographics ||
+    !facilityAnalytics ||
+    !healthStats
+  ) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-xl text-red-600">
@@ -122,6 +166,56 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  // Calculate health metrics
+  const totalInfections = healthStats.infections.length;
+  const totalVaccinations = healthStats.vaccinations.length;
+  const uniqueVaccinatedPeople = new Set(
+    healthStats.vaccinations.map((v) => v.ssn),
+  ).size;
+  const vaccinationRate =
+    dashboardStats.overview.total_persons > 0
+      ? (
+          (uniqueVaccinatedPeople / dashboardStats.overview.total_persons) *
+          100
+        ).toFixed(1)
+      : 0;
+
+  // Get recent infections (last 30 days)
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const recentInfections = healthStats.infections.filter(
+    (inf) => new Date(inf.date) > thirtyDaysAgo,
+  ).length;
+
+  // Infection type distribution
+  const infectionTypeCount = healthStats.infections.reduce(
+    (acc, inf) => {
+      acc[inf.infection_type_name] = (acc[inf.infection_type_name] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  // Vaccine type distribution
+  const vaccineTypeCount = healthStats.vaccinations.reduce(
+    (acc, vac) => {
+      acc[vac.vaccine_type_name] = (acc[vac.vaccine_type_name] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>,
+  );
+
+  // Active schedules (this week)
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  const activeSchedules = healthStats.schedules.filter((sch) => {
+    const schDate = new Date(sch.date);
+    return schDate >= weekStart && schDate <= weekEnd;
+  }).length;
 
   // Chart configurations
   const employeeRoleChartData = {
@@ -287,6 +381,77 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
+        {/* Health Metrics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-6 border border-red-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-red-600 mb-1">
+                  Total Infections
+                </div>
+                <div className="text-3xl font-bold text-red-900">
+                  {totalInfections.toLocaleString()}
+                </div>
+                <div className="text-xs text-red-600 mt-2">
+                  {recentInfections} in last 30 days
+                </div>
+              </div>
+              <ExclamationTriangleIcon className="h-12 w-12 text-red-400" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-green-600 mb-1">
+                  Total Vaccinations
+                </div>
+                <div className="text-3xl font-bold text-green-900">
+                  {totalVaccinations.toLocaleString()}
+                </div>
+                <div className="text-xs text-green-600 mt-2">
+                  {uniqueVaccinatedPeople} people vaccinated
+                </div>
+              </div>
+              <ShieldCheckIcon className="h-12 w-12 text-green-400" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-blue-600 mb-1">
+                  Vaccination Rate
+                </div>
+                <div className="text-3xl font-bold text-blue-900">
+                  {vaccinationRate}%
+                </div>
+                <div className="text-xs text-blue-600 mt-2">
+                  of total population
+                </div>
+              </div>
+              <ChartBarIcon className="h-12 w-12 text-blue-400" />
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-medium text-purple-600 mb-1">
+                  Active Schedules
+                </div>
+                <div className="text-3xl font-bold text-purple-900">
+                  {activeSchedules}
+                </div>
+                <div className="text-xs text-purple-600 mt-2">
+                  shifts this week
+                </div>
+              </div>
+              <UserGroupIcon className="h-12 w-12 text-purple-400" />
+            </div>
+          </div>
+        </div>
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Employee Roles Chart */}
@@ -326,6 +491,63 @@ const Dashboard: React.FC = () => {
             </h3>
             <div className="h-64">
               <Line data={monthlyTrendData} options={chartOptions} />
+            </div>
+          </div>
+
+          {/* Infection Types Chart */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Infection Types Distribution
+            </h3>
+            <div className="h-64">
+              <Pie
+                data={{
+                  labels: Object.keys(infectionTypeCount),
+                  datasets: [
+                    {
+                      label: "Infections",
+                      data: Object.values(infectionTypeCount),
+                      backgroundColor: [
+                        "#EF4444",
+                        "#F97316",
+                        "#F59E0B",
+                        "#EAB308",
+                        "#84CC16",
+                        "#22C55E",
+                        "#10B981",
+                        "#14B8A6",
+                      ],
+                      borderWidth: 2,
+                      borderColor: "#fff",
+                    },
+                  ],
+                }}
+                options={chartOptions}
+              />
+            </div>
+          </div>
+
+          {/* Vaccine Types Chart */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+              Vaccine Types Distribution
+            </h3>
+            <div className="h-64">
+              <Bar
+                data={{
+                  labels: Object.keys(vaccineTypeCount),
+                  datasets: [
+                    {
+                      label: "Vaccinations",
+                      data: Object.values(vaccineTypeCount),
+                      backgroundColor: "#10B981",
+                      borderColor: "#059669",
+                      borderWidth: 1,
+                    },
+                  ],
+                }}
+                options={chartOptions}
+              />
             </div>
           </div>
         </div>

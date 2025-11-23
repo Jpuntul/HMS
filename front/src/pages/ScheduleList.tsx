@@ -8,6 +8,7 @@ import {
   CalendarIcon,
   UserIcon,
   BuildingOfficeIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 
 interface Schedule {
@@ -26,6 +27,9 @@ const ScheduleList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRole, setSelectedRole] = useState<string>("");
+  const [selectedFacility, setSelectedFacility] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { user } = useAuth();
 
   useEffect(() => {
@@ -67,6 +71,43 @@ const ScheduleList: React.FC = () => {
     };
     return colors[role.toLowerCase()] || "bg-gray-100 text-gray-800";
   };
+
+  // Filter schedules based on search and filters
+  const filteredSchedules = schedules.filter((schedule) => {
+    const matchesSearch =
+      !searchTerm ||
+      schedule.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.facility_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      schedule.employee_role.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesRole =
+      !selectedRole || schedule.employee_role === selectedRole;
+    const matchesFacility =
+      !selectedFacility || schedule.facility_name === selectedFacility;
+
+    return matchesSearch && matchesRole && matchesFacility;
+  });
+
+  // Get unique roles and facilities for filters
+  const uniqueRoles = [
+    ...new Set(schedules.map((s) => s.employee_role)),
+  ].sort();
+  const uniqueFacilities = [
+    ...new Set(schedules.map((s) => s.facility_name)),
+  ].sort();
+
+  // Group schedules by date for list view
+  const groupedSchedules = filteredSchedules.reduce(
+    (acc, schedule) => {
+      const date = schedule.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push(schedule);
+      return acc;
+    },
+    {} as Record<string, Schedule[]>,
+  );
 
   if (loading) {
     return (
@@ -119,88 +160,210 @@ const ScheduleList: React.FC = () => {
           </div>
         </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Search by employee name, facility, or role..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+        {/* Search and Filter Bar */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <input
+              type="text"
+              placeholder="Search by employee, facility, or role..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="md:col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Roles</option>
+              {uniqueRoles.map((role) => (
+                <option key={role} value={role}>
+                  {role.charAt(0).toUpperCase() + role.slice(1)}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={selectedFacility}
+              onChange={(e) => setSelectedFacility(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Facilities</option>
+              {uniqueFacilities.map((facility) => (
+                <option key={facility} value={facility}>
+                  {facility}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="text-sm text-gray-600">
+              Showing {filteredSchedules.length} of {schedules.length} schedules
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`px-4 py-2 rounded-lg ${
+                  viewMode === "grid"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                Grid View
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`px-4 py-2 rounded-lg ${
+                  viewMode === "list"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                List by Date
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Schedules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schedules.map((schedule, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center">
-                  <UserIcon className="h-6 w-6 text-blue-600 mr-2" />
-                  <div className="text-lg font-semibold text-gray-900">
-                    {schedule.employee_name}
+        {/* Schedules Display */}
+        {viewMode === "grid" ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSchedules.map((schedule, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <UserIcon className="h-6 w-6 text-blue-600 mr-2" />
+                    <div className="text-lg font-semibold text-gray-900">
+                      {schedule.employee_name}
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
+                      schedule.employee_role,
+                    )}`}
+                  >
+                    {schedule.employee_role}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                    {schedule.facility_name}
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-600">
+                    <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                    {new Date(schedule.date).toLocaleDateString("en-US", {
+                      weekday: "short",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </div>
+
+                  <div className="flex items-center text-sm text-gray-600">
+                    <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
+                    <span className="font-medium text-gray-900">
+                      {schedule.start_time.slice(0, 5)}
+                    </span>
+                    <span className="mx-2">→</span>
+                    <span className="font-medium text-gray-900">
+                      {schedule.end_time
+                        ? schedule.end_time.slice(0, 5)
+                        : "Ongoing"}
+                    </span>
                   </div>
                 </div>
-                <span
-                  className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                    schedule.employee_role,
-                  )}`}
-                >
-                  {schedule.employee_role}
-                </span>
-              </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center text-sm text-gray-600">
-                  <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                  {schedule.facility_name}
-                </div>
-
-                <div className="flex items-center text-sm text-gray-600">
-                  <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
-                  {new Date(schedule.date).toLocaleDateString("en-US", {
-                    weekday: "short",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
-
-                <div className="flex items-center text-sm text-gray-600">
-                  <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                  <span className="font-medium text-gray-900">
-                    {schedule.start_time.slice(0, 5)}
-                  </span>
-                  <span className="mx-2">→</span>
-                  <span className="font-medium text-gray-900">
-                    {schedule.end_time
-                      ? schedule.end_time.slice(0, 5)
-                      : "Ongoing"}
-                  </span>
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="text-xs text-gray-500">
+                    SSN: {schedule.essn} • Facility ID: {schedule.fid}
+                  </div>
                 </div>
               </div>
-
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <div className="text-xs text-gray-500">
-                  SSN: {schedule.essn} • Facility ID: {schedule.fid}
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(groupedSchedules)
+              .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
+              .map(([date, daySchedules]) => (
+                <div key={date} className="bg-white rounded-lg shadow">
+                  <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+                    <div className="flex items-center">
+                      <CalendarIcon className="h-5 w-5 text-blue-600 mr-2" />
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        {new Date(date).toLocaleDateString("en-US", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </h3>
+                      <span className="ml-auto bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {daySchedules.length} shifts
+                      </span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {daySchedules.map((schedule, idx) => (
+                      <div
+                        key={idx}
+                        className="px-6 py-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center">
+                              <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="font-medium text-gray-900">
+                                {schedule.start_time.slice(0, 5)} -{" "}
+                                {schedule.end_time
+                                  ? schedule.end_time.slice(0, 5)
+                                  : "Ongoing"}
+                              </span>
+                            </div>
+                            <div className="flex items-center">
+                              <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
+                              <span className="text-gray-900">
+                                {schedule.employee_name}
+                              </span>
+                            </div>
+                            <span
+                              className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
+                                schedule.employee_role,
+                              )}`}
+                            >
+                              {schedule.employee_role}
+                            </span>
+                          </div>
+                          <div className="flex items-center text-sm text-gray-600">
+                            <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                            {schedule.facility_name}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              ))}
+          </div>
+        )}
 
-        {schedules.length === 0 && (
+        {filteredSchedules.length === 0 && (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <ClockIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <FunnelIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
               No schedules found
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              {searchTerm
-                ? "Try adjusting your search terms"
+              {searchTerm || selectedRole || selectedFacility
+                ? "Try adjusting your filters"
                 : "Get started by adding a new schedule"}
             </p>
           </div>
