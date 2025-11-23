@@ -6,6 +6,9 @@ import AddPerson from "./pages/AddPerson";
 import EditPerson from "./pages/EditPerson";
 import EmployeeList from "./pages/EmployeeList";
 import FacilityList from "./pages/FacilityList";
+import InfectionList from "./pages/InfectionList";
+import VaccinationList from "./pages/VaccinationList";
+import ScheduleList from "./pages/ScheduleList";
 import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -18,6 +21,9 @@ import {
   ChartBarIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
+  ExclamationTriangleIcon,
+  ShieldCheckIcon,
+  ClockIcon,
 } from "@heroicons/react/24/outline";
 
 // Navigation component that uses auth context
@@ -79,6 +85,27 @@ const AppNavigation: React.FC = () => {
             >
               <BuildingOffice2Icon className="h-4 w-4" />
               <span>Facilities</span>
+            </Link>
+            <Link
+              to="/infections"
+              className="flex items-center space-x-2 text-gray-600 hover:text-red-600 font-medium px-3 py-2 rounded-lg hover:bg-red-50 transition-all"
+            >
+              <ExclamationTriangleIcon className="h-4 w-4" />
+              <span>Infections</span>
+            </Link>
+            <Link
+              to="/vaccinations"
+              className="flex items-center space-x-2 text-gray-600 hover:text-green-600 font-medium px-3 py-2 rounded-lg hover:bg-green-50 transition-all"
+            >
+              <ShieldCheckIcon className="h-4 w-4" />
+              <span>Vaccinations</span>
+            </Link>
+            <Link
+              to="/schedules"
+              className="flex items-center space-x-2 text-gray-600 hover:text-blue-600 font-medium px-3 py-2 rounded-lg hover:bg-blue-50 transition-all"
+            >
+              <ClockIcon className="h-4 w-4" />
+              <span>Schedules</span>
             </Link>
 
             {/* User Menu */}
@@ -144,6 +171,9 @@ function App() {
               <Route path="/persons" element={<PersonList />} />
               <Route path="/employees" element={<EmployeeList />} />
               <Route path="/facilities" element={<FacilityList />} />
+              <Route path="/infections" element={<InfectionList />} />
+              <Route path="/vaccinations" element={<VaccinationList />} />
+              <Route path="/schedules" element={<ScheduleList />} />
 
               {/* Protected CRUD routes - require authentication */}
               <Route
