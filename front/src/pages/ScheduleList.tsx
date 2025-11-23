@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import Pagination from "../components/Pagination";
 import {
   ClockIcon,
   PlusIcon,
@@ -30,20 +31,56 @@ const ScheduleList: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedFacility, setSelectedFacility] = useState<string>("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
+
+  // Custom hook for debouncing search term
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+
+    return debouncedValue;
+  };
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     fetchSchedules();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
+  }, [debouncedSearchTerm, selectedRole, selectedFacility, currentPage]);
+
+  // Reset to page 1 when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, selectedRole, selectedFacility]);
 
   const fetchSchedules = async () => {
     try {
+      setLoading(true);
       let url = "http://localhost:8000/api/schedules/";
       const params = new URLSearchParams();
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
+      params.append("page", currentPage.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
+      }
+      if (selectedRole) {
+        params.append("role", selectedRole);
+      }
+      if (selectedFacility) {
+        params.append("facility", selectedFacility);
       }
 
       if (params.toString()) {
@@ -51,7 +88,11 @@ const ScheduleList: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      setSchedules(response.data);
+      // Handle paginated response
+      const data = response.data.results || response.data;
+      setSchedules(Array.isArray(data) ? data : []);
+      setTotalCount(response.data.count || data.length);
+      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
       setLoading(false);
     } catch {
       setError("Failed to fetch schedules");
@@ -72,22 +113,6 @@ const ScheduleList: React.FC = () => {
     return colors[role.toLowerCase()] || "bg-gray-100 text-gray-800";
   };
 
-  // Filter schedules based on search and filters
-  const filteredSchedules = schedules.filter((schedule) => {
-    const matchesSearch =
-      !searchTerm ||
-      schedule.employee_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.facility_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      schedule.employee_role.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesRole =
-      !selectedRole || schedule.employee_role === selectedRole;
-    const matchesFacility =
-      !selectedFacility || schedule.facility_name === selectedFacility;
-
-    return matchesSearch && matchesRole && matchesFacility;
-  });
-
   // Get unique roles and facilities for filters
   const uniqueRoles = [
     ...new Set(schedules.map((s) => s.employee_role)),
@@ -97,7 +122,7 @@ const ScheduleList: React.FC = () => {
   ].sort();
 
   // Group schedules by date for list view
-  const groupedSchedules = filteredSchedules.reduce(
+  const groupedSchedules = schedules.reduce(
     (acc, schedule) => {
       const date = schedule.date;
       if (!acc[date]) {
@@ -126,103 +151,137 @@ const ScheduleList: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <ClockIcon className="h-8 w-8 mr-3 text-blue-600" />
-                Employee Schedules
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Manage work schedules and shifts ({schedules.length} schedules)
-              </p>
+        <div className="bg-white shadow-sm rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <ClockIcon className="h-8 w-8 text-blue-600" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Employee Schedules
+                  </h1>
+                  <p className="text-gray-600 mt-2">
+                    Manage work schedules and shifts
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                {user ? (
+                  <Link
+                    to="/schedules/add"
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Add Schedule</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Login to Add Schedule</span>
+                  </Link>
+                )}
+              </div>
             </div>
-            {user && (
-              <Link
-                to="/schedules/add"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Add Schedule
-              </Link>
-            )}
-            {!user && (
-              <Link
-                to="/login"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Login to Add Schedules
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {/* Search and Filter Bar */}
-        <div className="mb-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <input
-              type="text"
-              placeholder="Search by employee, facility, or role..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="md:col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-
-            <select
-              value={selectedRole}
-              onChange={(e) => setSelectedRole(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Roles</option>
-              {uniqueRoles.map((role) => (
-                <option key={role} value={role}>
-                  {role.charAt(0).toUpperCase() + role.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={selectedFacility}
-              onChange={(e) => setSelectedFacility(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Facilities</option>
-              {uniqueFacilities.map((facility) => (
-                <option key={facility} value={facility}>
-                  {facility}
-                </option>
-              ))}
-            </select>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-gray-600">
-              Showing {filteredSchedules.length} of {schedules.length} schedules
+          {/* Search and Filter */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <input
+                type="text"
+                placeholder="Search by employee, facility, or role..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="md:col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+
+              <select
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Roles</option>
+                {uniqueRoles.map((role) => (
+                  <option key={role} value={role}>
+                    {role.charAt(0).toUpperCase() + role.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={selectedFacility}
+                onChange={(e) => setSelectedFacility(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Facilities</option>
+                {uniqueFacilities.map((facility) => (
+                  <option key={facility} value={facility}>
+                    {facility}
+                  </option>
+                ))}
+              </select>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`px-4 py-2 rounded-lg ${
-                  viewMode === "grid"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                Grid View
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-4 py-2 rounded-lg ${
-                  viewMode === "list"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                List by Date
-              </button>
+
+            <div className="flex items-center justify-between mt-4">
+              <div className="text-sm text-gray-600">
+                Total Schedules: {totalCount}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  className={`px-4 py-2 rounded-lg ${
+                    viewMode === "grid"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  Grid View
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  className={`px-4 py-2 rounded-lg ${
+                    viewMode === "list"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                >
+                  List by Date
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {totalCount}
+                </div>
+                <div className="text-blue-800 font-medium">Total Schedules</div>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {new Set(schedules.map((s) => s.essn)).size}
+                </div>
+                <div className="text-green-800 font-medium">
+                  Scheduled Employees
+                </div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {new Set(schedules.map((s) => s.fid)).size}
+                </div>
+                <div className="text-purple-800 font-medium">
+                  Active Facilities
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -230,7 +289,7 @@ const ScheduleList: React.FC = () => {
         {/* Schedules Display */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSchedules.map((schedule, index) => (
+            {schedules.map((schedule, index) => (
               <div
                 key={index}
                 className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6"
@@ -355,7 +414,7 @@ const ScheduleList: React.FC = () => {
           </div>
         )}
 
-        {filteredSchedules.length === 0 && (
+        {schedules.length === 0 && (
           <div className="bg-white rounded-lg shadow-md p-12 text-center">
             <FunnelIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">
@@ -369,33 +428,16 @@ const ScheduleList: React.FC = () => {
           </div>
         )}
 
-        {/* Stats Summary */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Total Schedules
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {schedules.length}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Scheduled Employees
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {new Set(schedules.map((s) => s.essn)).size}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Active Facilities
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {new Set(schedules.map((s) => s.fid)).size}
-            </div>
-          </div>
-        </div>
+        {/* Pagination */}
+        {schedules.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            itemsPerPage={20}
+          />
+        )}
       </div>
     </div>
   );

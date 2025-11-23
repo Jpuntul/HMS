@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
+import Pagination from "../components/Pagination";
 import {
   ExclamationTriangleIcon,
   PlusIcon,
@@ -22,20 +23,50 @@ const InfectionList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
+
+  // Custom hook for debouncing search term
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+
+    return debouncedValue;
+  };
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     fetchInfections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm]);
+  }, [debouncedSearchTerm, currentPage]);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   const fetchInfections = async () => {
     try {
+      setLoading(true);
       let url = "http://localhost:8000/api/infections/";
       const params = new URLSearchParams();
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
+      params.append("page", currentPage.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
       }
 
       if (params.toString()) {
@@ -43,7 +74,11 @@ const InfectionList: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      setInfections(response.data);
+      // Handle paginated response
+      const data = response.data.results || response.data;
+      setInfections(Array.isArray(data) ? data : []);
+      setTotalCount(response.data.count || data.length);
+      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
       setLoading(false);
     } catch {
       setError("Failed to fetch infections");
@@ -68,49 +103,81 @@ const InfectionList: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center">
-                <ExclamationTriangleIcon className="h-8 w-8 mr-3 text-red-600" />
-                Infection Records
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Track and manage infection cases ({infections.length} records)
-              </p>
+        <div className="bg-white shadow-sm rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <ExclamationTriangleIcon className="h-8 w-8 text-red-600" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Infection Records
+                  </h1>
+                  <p className="text-gray-600 mt-2">
+                    Track and manage infection cases
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                {user ? (
+                  <Link
+                    to="/infections/add"
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Add Infection Record</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Login to Add Records</span>
+                  </Link>
+                )}
+              </div>
             </div>
-            {user && (
-              <Link
-                to="/infections/add"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Add Infection Record
-              </Link>
-            )}
-            {!user && (
-              <Link
-                to="/login"
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Login to Add Records
-              </Link>
-            )}
           </div>
-        </div>
 
-        {/* Search Bar */}
-        <div className="mb-6">
-          <input
-            type="text"
-            placeholder="Search by SSN, person name, or infection type..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-          />
+          {/* Search Bar */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <input
+              type="text"
+              placeholder="Search by SSN, person name, or infection type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Stats */}
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-red-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {totalCount}
+                </div>
+                <div className="text-red-800 font-medium">Total Infections</div>
+              </div>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {new Set(infections.map((i) => i.ssn)).size}
+                </div>
+                <div className="text-blue-800 font-medium">Unique Patients</div>
+              </div>
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {new Set(infections.map((i) => i.infection_type_name)).size}
+                </div>
+                <div className="text-purple-800 font-medium">
+                  Infection Types
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Infections Table */}
@@ -177,33 +244,16 @@ const InfectionList: React.FC = () => {
           )}
         </div>
 
-        {/* Stats Summary */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Total Infections
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {infections.length}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Unique Patients
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {new Set(infections.map((i) => i.ssn)).size}
-            </div>
-          </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="text-sm font-medium text-gray-500">
-              Infection Types
-            </div>
-            <div className="mt-2 text-3xl font-semibold text-gray-900">
-              {new Set(infections.map((i) => i.infection_type_name)).size}
-            </div>
-          </div>
-        </div>
+        {/* Pagination */}
+        {infections.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            itemsPerPage={20}
+          />
+        )}
       </div>
     </div>
   );

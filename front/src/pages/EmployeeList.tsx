@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
+import Pagination from "../components/Pagination";
 import { useAuth } from "../contexts/AuthContext";
 import {
   UserGroupIcon,
@@ -18,6 +19,23 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 
+// Custom debounce hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
 interface Employee {
   ssn: number;
   role: string;
@@ -32,15 +50,24 @@ const EmployeeList: React.FC = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
+
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const fetchEmployees = async () => {
     try {
+      setLoading(true);
       let url = "http://localhost:8000/api/employees/";
       const params = new URLSearchParams();
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
+      params.append("page", currentPage.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
       }
       if (roleFilter) {
         params.append("role", roleFilter);
@@ -51,7 +78,11 @@ const EmployeeList: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      setEmployees(response.data);
+      // Handle paginated response
+      const data = response.data.results || response.data;
+      setEmployees(Array.isArray(data) ? data : []);
+      setTotalCount(response.data.count || data.length);
+      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
       setLoading(false);
     } catch {
       setError("Failed to fetch employees");
@@ -62,7 +93,12 @@ const EmployeeList: React.FC = () => {
   useEffect(() => {
     fetchEmployees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, roleFilter]);
+  }, [debouncedSearchTerm, roleFilter, currentPage]);
+
+  // Reset to page 1 when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, roleFilter]);
 
   const getRoleBadgeColor = (role: string) => {
     const colors: { [key: string]: string } = {
@@ -98,121 +134,145 @@ const EmployeeList: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div className="flex items-center space-x-3">
-              <UserGroupIcon className="h-8 w-8 text-green-600" />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Employee Management
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Manage healthcare facility staff members ({employees.length}{" "}
-                  employees)
-                </p>
+        <div className="bg-white shadow-sm rounded-lg mb-8">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center space-x-3">
+                <UserGroupIcon className="h-8 w-8 text-green-600" />
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">
+                    Employee Management
+                  </h1>
+                  <p className="text-gray-600 mt-2">
+                    Manage healthcare facility staff members
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-3">
+                {user ? (
+                  <Link
+                    to="/add-employee"
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Add Employee</span>
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Login to Add Employee</span>
+                  </Link>
+                )}
               </div>
             </div>
-            <div className="flex space-x-3">
-              {user ? (
-                <Link
-                  to="/add-employee"
-                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  <PlusIcon className="h-4 w-4" />
-                  <span>Add Employee</span>
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Login to Add Employee
-                </Link>
-              )}
+          </div>
+
+          {/* Search and Filter */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <SearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  placeholder="Search by name, SSN, role..."
+                  label="Search"
+                />
+              </div>
+              <FilterDropdown
+                label="Role"
+                value={roleFilter}
+                onChange={setRoleFilter}
+                options={[
+                  {
+                    value: "doctor",
+                    label: "Doctor",
+                    count: employees.filter((e) => e.role === "doctor").length,
+                  },
+                  {
+                    value: "nurse",
+                    label: "Nurse",
+                    count: employees.filter((e) => e.role === "nurse").length,
+                  },
+                  {
+                    value: "pharmacist",
+                    label: "Pharmacist",
+                    count: employees.filter((e) => e.role === "pharmacist")
+                      .length,
+                  },
+                  {
+                    value: "cashier",
+                    label: "Cashier",
+                    count: employees.filter((e) => e.role === "cashier").length,
+                  },
+                  {
+                    value: "receptionist",
+                    label: "Receptionist",
+                    count: employees.filter((e) => e.role === "receptionist")
+                      .length,
+                  },
+                  {
+                    value: "administrative personnel",
+                    label: "Administrative Personnel",
+                    count: employees.filter(
+                      (e) => e.role === "administrative personnel",
+                    ).length,
+                  },
+                  {
+                    value: "security personnel",
+                    label: "Security Personnel",
+                    count: employees.filter(
+                      (e) => e.role === "security personnel",
+                    ).length,
+                  },
+                  {
+                    value: "regular employee",
+                    label: "Regular Employee",
+                    count: employees.filter(
+                      (e) => e.role === "regular employee",
+                    ).length,
+                  },
+                ]}
+              />
             </div>
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="text-2xl font-bold text-blue-600">
-                {employees.length}
+          <div className="px-6 py-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {totalCount}
+                </div>
+                <div className="text-blue-800 font-medium">Total Employees</div>
               </div>
-              <div className="text-blue-800 font-medium">Total Employees</div>
-            </div>
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="text-2xl font-bold text-green-600">
-                {
-                  employees.filter(
-                    (emp) => emp.role === "doctor" || emp.role === "nurse",
-                  ).length
-                }
+              <div className="bg-green-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {
+                    employees.filter(
+                      (emp) => emp.role === "doctor" || emp.role === "nurse",
+                    ).length
+                  }
+                </div>
+                <div className="text-green-800 font-medium">Medical Staff</div>
               </div>
-              <div className="text-green-800 font-medium">Medical Staff</div>
-            </div>
-            <div className="bg-purple-50 p-4 rounded-lg">
-              <div className="text-2xl font-bold text-purple-600">
-                {new Set(employees.map((emp) => emp.role)).size}
+              <div className="bg-purple-50 p-4 rounded-lg">
+                <div className="text-2xl font-bold text-purple-600">
+                  {new Set(employees.map((emp) => emp.role)).size}
+                </div>
+                <div className="text-purple-800 font-medium">
+                  Different Roles
+                </div>
               </div>
-              <div className="text-purple-800 font-medium">Different Roles</div>
             </div>
           </div>
-        </div>
-
-        {/* Search and Filter Section */}
-        <div className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                placeholder="Search by name, SSN, role..."
-                label="Search"
-                className="w-full"
-              />
-            </div>
-            <FilterDropdown
-              label="Role"
-              value={roleFilter}
-              onChange={setRoleFilter}
-              options={[
-                { value: "doctor", label: "Doctor" },
-                { value: "nurse", label: "Nurse" },
-                { value: "pharmacist", label: "Pharmacist" },
-                { value: "cashier", label: "Cashier" },
-                { value: "receptionist", label: "Receptionist" },
-                {
-                  value: "administrative personnel",
-                  label: "Administrative Personnel",
-                },
-                { value: "security personnel", label: "Security Personnel" },
-                { value: "regular employee", label: "Regular Employee" },
-              ]}
-            />
-          </div>
-
-          {(searchTerm || roleFilter) && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                {employees.length} employee{employees.length !== 1 ? "s" : ""}{" "}
-                found
-                {searchTerm && ` for "${searchTerm}"`}
-              </div>
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setRoleFilter("");
-                }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Employee Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {}
           {employees.map((employee) => (
             <div
               key={employee.ssn}
@@ -299,6 +359,17 @@ const EmployeeList: React.FC = () => {
               There are no employees in the system.
             </div>
           </div>
+        )}
+
+        {/* Pagination */}
+        {employees.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            itemsPerPage={20}
+          />
         )}
       </div>
     </div>

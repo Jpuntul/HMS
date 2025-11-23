@@ -19,6 +19,7 @@ import {
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
 import SearchResultsHeader from "../components/SearchResultsHeader";
+import Pagination from "../components/Pagination";
 import { useAuth } from "../contexts/AuthContext";
 
 interface Facility {
@@ -42,20 +43,50 @@ const FacilityList: React.FC = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
+
+  // Custom hook for debouncing search term
+  const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+      const handler = setTimeout(() => {
+        setDebouncedValue(value);
+      }, delay);
+
+      return () => {
+        clearTimeout(handler);
+      };
+    }, [value, delay]);
+
+    return debouncedValue;
+  };
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     fetchFacilities();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchTerm, typeFilter]);
+  }, [debouncedSearchTerm, typeFilter, currentPage]);
+
+  // Reset to page 1 when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, typeFilter]);
 
   const fetchFacilities = async () => {
     try {
+      setLoading(true);
       let url = "http://localhost:8000/api/facilities/";
       const params = new URLSearchParams();
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
+      params.append("page", currentPage.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
       }
       if (typeFilter) {
         params.append("type", typeFilter);
@@ -66,7 +97,11 @@ const FacilityList: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      setFacilities(response.data);
+      // Handle paginated response
+      const data = response.data.results || response.data;
+      setFacilities(Array.isArray(data) ? data : []);
+      setTotalCount(response.data.count || data.length);
+      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
       setLoading(false);
     } catch {
       setError("Failed to fetch facilities");
@@ -397,6 +432,17 @@ const FacilityList: React.FC = () => {
               There are no facilities in the system.
             </div>
           </div>
+        )}
+
+        {/* Pagination */}
+        {facilities.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            itemsPerPage={20}
+          />
         )}
       </div>
     </div>

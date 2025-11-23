@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
+import Pagination from "../components/Pagination";
 import {
   UserIcon,
   UserGroupIcon,
@@ -18,6 +19,23 @@ import {
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+
+// Custom debounce hook
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 export interface Person {
   id: number;
@@ -44,14 +62,23 @@ const PersonList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [citizenshipFilter, setCitizenshipFilter] = useState("");
   const [occupationFilter, setOccupationFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  // Debounce search term to reduce API calls
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const fetchPersons = async () => {
     try {
+      setLoading(true);
       let url = "http://localhost:8000/api/persons/";
       const params = new URLSearchParams();
 
-      if (searchTerm) {
-        params.append("search", searchTerm);
+      params.append("page", currentPage.toString());
+
+      if (debouncedSearchTerm) {
+        params.append("search", debouncedSearchTerm);
       }
       if (citizenshipFilter) {
         params.append("citizenship", citizenshipFilter);
@@ -65,8 +92,11 @@ const PersonList: React.FC = () => {
       }
 
       const response = await axios.get(url);
-      setPersons(response.data);
-      setFilteredPersons(response.data);
+      const data = response.data.results || response.data;
+      setPersons(data);
+      setFilteredPersons(data);
+      setTotalCount(response.data.count || data.length);
+      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
     } catch (error) {
       console.error(error);
     } finally {
@@ -84,7 +114,18 @@ const PersonList: React.FC = () => {
 
     fetchPersons();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.state, searchTerm, citizenshipFilter, occupationFilter]);
+  }, [
+    location.state,
+    debouncedSearchTerm,
+    citizenshipFilter,
+    occupationFilter,
+    currentPage,
+  ]);
+
+  // Reset to page 1 when search/filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, citizenshipFilter, occupationFilter]);
 
   // Get unique values for filters
   const uniqueCitizenships = [
@@ -185,12 +226,38 @@ const PersonList: React.FC = () => {
             </div>
           </div>
 
+          {/* Search and Filter */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <SearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  placeholder="Search by name, SSN, Medicare, email..."
+                  label="Search"
+                />
+              </div>
+              <FilterDropdown
+                label="Citizenship"
+                value={citizenshipFilter}
+                onChange={setCitizenshipFilter}
+                options={citizenshipOptions}
+              />
+              <FilterDropdown
+                label="Occupation"
+                value={occupationFilter}
+                onChange={setOccupationFilter}
+                options={occupationOptions}
+              />
+            </div>
+          </div>
+
           {/* Stats */}
           <div className="px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <div className="text-2xl font-bold text-blue-600">
-                  {persons.length}
+                  {totalCount}
                 </div>
                 <div className="text-blue-800 font-medium">Total Persons</div>
               </div>
@@ -210,52 +277,6 @@ const PersonList: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Search and Filter Section */}
-        <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
-              <SearchBar
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                placeholder="Search by name, SSN, Medicare, email..."
-                label="Search"
-                className="w-full"
-              />
-            </div>
-            <FilterDropdown
-              label="Citizenship"
-              value={citizenshipFilter}
-              onChange={setCitizenshipFilter}
-              options={citizenshipOptions}
-            />
-            <FilterDropdown
-              label="Occupation"
-              value={occupationFilter}
-              onChange={setOccupationFilter}
-              options={occupationOptions}
-            />
-          </div>
-
-          {(searchTerm || citizenshipFilter || occupationFilter) && (
-            <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                {persons.length} result{persons.length !== 1 ? "s" : ""} found
-                {searchTerm && ` for "${searchTerm}"`}
-              </div>
-              <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setCitizenshipFilter("");
-                  setOccupationFilter("");
-                }}
-                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Clear all filters
-              </button>
-            </div>
-          )}
         </div>
 
         {successMessage && (
@@ -366,6 +387,17 @@ const PersonList: React.FC = () => {
               There are no persons in the system.
             </div>
           </div>
+        )}
+
+        {/* Pagination */}
+        {filteredPersons.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            onPageChange={setCurrentPage}
+            itemsPerPage={20}
+          />
         )}
 
         {/* Delete Confirmation Modal */}

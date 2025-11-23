@@ -123,18 +123,26 @@ const Dashboard: React.FC = () => {
         axios.get("http://localhost:8000/api/analytics/dashboard/"),
         axios.get("http://localhost:8000/api/analytics/demographics/"),
         axios.get("http://localhost:8000/api/analytics/facilities/"),
-        axios.get("http://localhost:8000/api/infections/"),
-        axios.get("http://localhost:8000/api/vaccinations/"),
-        axios.get("http://localhost:8000/api/schedules/"),
+        // Only fetch recent data for dashboard charts
+        axios.get(
+          "http://localhost:8000/api/infections/?limit=200&ordering=-date",
+        ),
+        axios.get(
+          "http://localhost:8000/api/vaccinations/?limit=200&ordering=-date",
+        ),
+        axios.get(
+          "http://localhost:8000/api/schedules/?limit=100&ordering=-date",
+        ),
       ]);
 
       setDashboardStats(statsResponse.data);
       setDemographics(demographicsResponse.data);
       setFacilityAnalytics(facilityResponse.data);
       setHealthStats({
-        infections: infectionsResponse.data,
-        vaccinations: vaccinationsResponse.data,
-        schedules: schedulesResponse.data,
+        infections: infectionsResponse.data.results || infectionsResponse.data,
+        vaccinations:
+          vaccinationsResponse.data.results || vaccinationsResponse.data,
+        schedules: schedulesResponse.data.results || schedulesResponse.data,
       });
       setLoading(false);
     } catch {
