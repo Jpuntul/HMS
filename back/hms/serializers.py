@@ -1,5 +1,16 @@
 from rest_framework import serializers
-from .models import Person, Employee, Facility
+from .models import (
+    Person,
+    Employee,
+    Facility,
+    Residence,
+    InfectionType,
+    Infection,
+    VaccineType,
+    Vaccination,
+    Employment,
+    Schedule,
+)
 
 
 class PersonSerializer(serializers.ModelSerializer):
@@ -42,3 +53,110 @@ class FacilitySerializer(serializers.ModelSerializer):
     def get_general_manager_name(self, obj):
         gm = obj.general_manager
         return f"{gm.first_name} {gm.last_name}" if gm else "Unknown"
+
+
+class ResidenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Residence
+        fields = "__all__"
+
+
+class InfectionTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InfectionType
+        fields = "__all__"
+
+
+class InfectionSerializer(serializers.ModelSerializer):
+    person_name = serializers.SerializerMethodField()
+    infection_type_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Infection
+        fields = "__all__"
+
+    def get_person_name(self, obj):
+        person = obj.person
+        return f"{person.first_name} {person.last_name}" if person else "Unknown"
+
+    def get_infection_type_name(self, obj):
+        infection_type = obj.infection_type
+        return infection_type.type_name if infection_type else "Unknown"
+
+
+class VaccineTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VaccineType
+        fields = "__all__"
+
+
+class VaccinationSerializer(serializers.ModelSerializer):
+    person_name = serializers.SerializerMethodField()
+    vaccine_type_name = serializers.SerializerMethodField()
+    facility_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Vaccination
+        fields = "__all__"
+
+    def get_person_name(self, obj):
+        person = obj.person
+        return f"{person.first_name} {person.last_name}" if person else "Unknown"
+
+    def get_vaccine_type_name(self, obj):
+        vaccine_type = obj.vaccine_type
+        return vaccine_type.type_name if vaccine_type else "Unknown"
+
+    def get_facility_name(self, obj):
+        facility = obj.facility
+        return facility.name if facility else "Unknown"
+
+
+class EmploymentSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    facility_name = serializers.SerializerMethodField()
+    employee_role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Employment
+        fields = "__all__"
+
+    def get_employee_name(self, obj):
+        employee = obj.employee
+        if employee and employee.person:
+            person = employee.person
+            return f"{person.first_name} {person.last_name}"
+        return "Unknown"
+
+    def get_facility_name(self, obj):
+        facility = obj.facility
+        return facility.name if facility else "Unknown"
+
+    def get_employee_role(self, obj):
+        employee = obj.employee
+        return employee.role if employee else "Unknown"
+
+
+class ScheduleSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    facility_name = serializers.SerializerMethodField()
+    employee_role = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Schedule
+        fields = "__all__"
+
+    def get_employee_name(self, obj):
+        employee = obj.employee
+        if employee and employee.person:
+            person = employee.person
+            return f"{person.first_name} {person.last_name}"
+        return "Unknown"
+
+    def get_facility_name(self, obj):
+        facility = obj.facility
+        return facility.name if facility else "Unknown"
+
+    def get_employee_role(self, obj):
+        employee = obj.employee
+        return employee.role if employee else "Unknown"
