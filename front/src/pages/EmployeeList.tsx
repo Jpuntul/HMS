@@ -98,89 +98,69 @@ const EmployeeList: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <UserGroupIcon className="h-8 w-8 text-blue-600" />
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Employee Management
-                  </h1>
-                  <p className="text-gray-600 mt-2">
-                    Manage healthcare facility staff members
-                  </p>
-                </div>
+        <div className="mb-8">
+          <div className="flex justify-between items-start mb-6">
+            <div className="flex items-center space-x-3">
+              <UserGroupIcon className="h-8 w-8 text-green-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Employee Management
+                </h1>
+                <p className="text-gray-600 mt-1">
+                  Manage healthcare facility staff members ({employees.length}{" "}
+                  employees)
+                </p>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
-                  <Link
-                    to="/add-employee"
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add Employee</span>
-                  </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Employee</span>
-                  </Link>
-                )}
+            </div>
+            <div className="flex space-x-3">
+              {user ? (
                 <Link
-                  to="/persons"
-                  className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
+                  to="/add-employee"
+                  className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
                 >
-                  <UserIcon className="h-4 w-4" />
-                  <span>View Persons</span>
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Add Employee</span>
                 </Link>
+              ) : (
                 <Link
-                  to="/facilities"
-                  className="flex items-center space-x-2 px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                  to="/login"
+                  className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <BuildingOfficeIcon className="h-4 w-4" />
-                  <span>View Facilities</span>
+                  Login to Add Employee
                 </Link>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {employees.length}
-                </div>
-                <div className="text-blue-800 font-medium">Total Employees</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="text-2xl font-bold text-blue-600">
+                {employees.length}
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {
-                    employees.filter(
-                      (emp) => emp.role === "doctor" || emp.role === "nurse",
-                    ).length
-                  }
-                </div>
-                <div className="text-green-800 font-medium">Medical Staff</div>
+              <div className="text-blue-800 font-medium">Total Employees</div>
+            </div>
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="text-2xl font-bold text-green-600">
+                {
+                  employees.filter(
+                    (emp) => emp.role === "doctor" || emp.role === "nurse",
+                  ).length
+                }
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {new Set(employees.map((emp) => emp.role)).size}
-                </div>
-                <div className="text-purple-800 font-medium">
-                  Different Roles
-                </div>
+              <div className="text-green-800 font-medium">Medical Staff</div>
+            </div>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="text-2xl font-bold text-purple-600">
+                {new Set(employees.map((emp) => emp.role)).size}
               </div>
+              <div className="text-purple-800 font-medium">Different Roles</div>
             </div>
           </div>
         </div>
 
         {/* Search and Filter Section */}
-        <div className="bg-white shadow-sm rounded-lg mb-6 p-6">
+        <div className="mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
               <SearchBar
