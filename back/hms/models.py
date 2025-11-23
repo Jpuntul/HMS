@@ -145,7 +145,7 @@ class InfectionType(models.Model):
 
 
 class Infection(models.Model):
-    ssn = models.IntegerField(db_column="SSN")
+    ssn = models.IntegerField(db_column="SSN", primary_key=True)
     date = models.DateField(db_column="Date")
     type_id = models.IntegerField(db_column="TypeID")
 
@@ -187,7 +187,7 @@ class VaccineType(models.Model):
 
 
 class Vaccination(models.Model):
-    ssn = models.IntegerField(db_column="SSN")
+    ssn = models.IntegerField(db_column="SSN", primary_key=True)
     type_id = models.IntegerField(db_column="TypeID")
     date = models.DateField(db_column="Date")
     no_of_dose = models.IntegerField(null=True, blank=True, db_column="NoOfDose")
@@ -227,7 +227,7 @@ class Vaccination(models.Model):
 
 
 class Employment(models.Model):
-    essn = models.IntegerField(db_column="ESSN")
+    essn = models.IntegerField(db_column="ESSN", primary_key=True)
     fid = models.IntegerField(db_column="FID")
     start_date = models.DateField(db_column="StartDate")
     end_date = models.DateField(null=True, blank=True, db_column="EndDate")
@@ -258,7 +258,7 @@ class Employment(models.Model):
 
 
 class Schedule(models.Model):
-    essn = models.IntegerField(db_column="ESSN")
+    essn = models.IntegerField(db_column="ESSN", primary_key=True)
     fid = models.IntegerField(db_column="FID")
     date = models.DateField(db_column="Date")
     start_time = models.TimeField(db_column="StartTime")
