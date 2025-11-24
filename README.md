@@ -17,9 +17,13 @@ A comprehensive healthcare management platform with **hybrid authentication** - 
 ## 🚀 Quick Start
 
 ```bash
-# Clone and setup backend
+# Clone repository
 git clone https://github.com/Jpuntul/HMS.git
-cd HMS/back
+cd HMS
+
+# Setup backend
+cd back
+cp .env.example .env  # Configure environment variables
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python manage.py migrate
@@ -27,15 +31,19 @@ python manage.py runserver
 
 # Setup frontend (new terminal)
 cd ../front
+cp .env.example .env  # Configure environment variables
 npm install && npm run dev
 ```
 
 **Access:** Frontend at `http://localhost:5173` • Backend at `http://localhost:8000`
 
+> **Note:** Both frontend and backend now use `.env` files for configuration. Update `VITE_API_BASE_URL` and `PORT` as needed.
+
 ## 📚 Documentation
 
 - **[📖 Complete Setup Guide](docs/SETUP_GUIDE.md)** - Detailed installation instructions
-- **[🔌 API Documentation](docs/API_DOCUMENTATION.md)** - Full API reference
+- **[� Environment Setup](docs/ENVIRONMENT_SETUP.md)** - Environment configuration guide
+- **[�🔌 API Documentation](docs/API_DOCUMENTATION.md)** - Full API reference
 - **[🤝 Contributing Guide](docs/CONTRIBUTING.md)** - Development guidelines
 - **[🗃️ Database Schema](docs/DATABASE_SCHEMA.md)** - Database structure
 

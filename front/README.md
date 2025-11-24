@@ -1,73 +1,139 @@
-# React + TypeScript + Vite
+# HMS Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Modern healthcare management system frontend built with React, TypeScript, and Vite.
 
-Currently, two official plugins are available:
+## 🚀 Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+# Install dependencies
+npm install
 
-## React Compiler
+# Copy environment configuration
+cp .env.example .env
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+# Start development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+**Access:** `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+## 🛠️ Technology Stack
 
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+- **React 19.1.1** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool & dev server
+- **Tailwind CSS** - Styling
+- **Axios** - HTTP client
+- **React Router** - Routing
+- **Heroicons** - Icon library
+
+## 📁 Project Structure
+
 ```
+src/
+├── components/       # Reusable components
+│   ├── Pagination.tsx
+│   ├── SearchBar.tsx
+│   ├── FilterDropdown.tsx
+│   └── DeleteConfirmationModal.tsx
+├── config/          # Configuration files
+│   └── api.ts       # API endpoints & base URL
+├── contexts/        # React contexts
+│   └── AuthContext.tsx
+├── pages/           # Page components
+│   ├── Dashboard.tsx
+│   ├── PersonList.tsx
+│   ├── EmployeeList.tsx
+│   └── ...
+└── App.tsx          # Main app component
+```
+
+## 🔧 Environment Variables
+
+Create a `.env` file in the frontend directory:
+
+```env
+# API Base URL (backend server)
+VITE_API_BASE_URL=http://localhost:8000
+
+# Development Server Port
+VITE_PORT=5173
+```
+
+### Usage in Code
+
+```typescript
+import { API_BASE_URL, API_ENDPOINTS } from "./config/api";
+
+// Use predefined endpoints
+fetch(API_ENDPOINTS.persons);
+
+// Or build custom URLs
+const url = `${API_BASE_URL}/api/custom/`;
+```
+
+## 📦 Available Scripts
+
+```bash
+# Development
+npm run dev          # Start dev server
+
+# Production
+npm run build        # Build for production
+npm run preview      # Preview production build
+
+# Code Quality
+npm run lint         # Run ESLint
+```
+
+## 🎨 Features
+
+- **Hybrid Authentication** - Browse without login, authenticate for CRUD
+- **Responsive Design** - Works on desktop, tablet, and mobile
+- **Real-time Search** - Debounced search with 500ms delay
+- **Pagination** - Server-side pagination (20 items per page)
+- **Analytics Dashboard** - Charts and statistics
+- **Dark Mode Ready** - Tailwind CSS classes prepared
+
+## 🔌 API Integration
+
+All API calls use centralized configuration from `src/config/api.ts`:
+
+- Authentication: Login, Logout, Register
+- Persons: CRUD operations
+- Employees: Staff management
+- Facilities: Facility management
+- Infections: Infection tracking
+- Vaccinations: Vaccination records
+- Schedules: Employee schedules
+- Analytics: Dashboard data
+
+## 📱 Pages
+
+| Route           | Component       | Description             |
+| --------------- | --------------- | ----------------------- |
+| `/`             | Home            | Landing page with stats |
+| `/dashboard`    | Dashboard       | Analytics & charts      |
+| `/persons`      | PersonList      | Patient management      |
+| `/employees`    | EmployeeList    | Staff management        |
+| `/facilities`   | FacilityList    | Facility management     |
+| `/infections`   | InfectionList   | Infection tracking      |
+| `/vaccinations` | VaccinationList | Vaccination records     |
+| `/schedules`    | ScheduleList    | Employee schedules      |
+| `/login`        | Login           | User authentication     |
+| `/register`     | Register        | User registration       |
+
+## 🤝 Contributing
+
+See the main [CONTRIBUTING.md](../docs/CONTRIBUTING.md) for guidelines.
+
+## 📝 Notes
+
+- This project uses **React 19** with the new compiler features
+- **TypeScript** strict mode is enabled
+- **ESLint** configuration follows React best practices
+- **Vite** provides fast HMR (Hot Module Replacement)
+
+---
+
+For more information, see the [main README](../README.md) or [documentation](../docs/).

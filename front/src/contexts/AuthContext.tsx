@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import type { ReactNode } from "react";
+import { API_ENDPOINTS } from "../config/api";
 
 interface User {
   id: number;
@@ -79,7 +80,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:8000/api/auth/login/", {
+      const response = await fetch(API_ENDPOINTS.login, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,7 +114,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async (): Promise<void> => {
     try {
       if (token) {
-        await fetch("http://localhost:8000/api/auth/logout/", {
+        await fetch(API_ENDPOINTS.logout, {
           method: "POST",
           headers: {
             Authorization: `Token ${token}`,
@@ -138,7 +139,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ): Promise<{ success: boolean; error?: string }> => {
     try {
       setLoading(true);
-      const response = await fetch("http://localhost:8000/api/auth/register/", {
+      const response = await fetch(API_ENDPOINTS.register, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
