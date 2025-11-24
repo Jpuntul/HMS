@@ -64,7 +64,11 @@ const VaccinationList: React.FC = () => {
 
   const fetchVaccinations = async () => {
     try {
-      setLoading(true);
+      const isInitialLoad = vaccinations.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       let url = API_ENDPOINTS.vaccinations;
       const params = new URLSearchParams();
 

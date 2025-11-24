@@ -60,7 +60,10 @@ const InfectionList: React.FC = () => {
 
   const fetchInfections = async () => {
     try {
-      setLoading(true);
+      const isInitialLoad = infections.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
       let url = API_ENDPOINTS.infections;
       const params = new URLSearchParams();
 

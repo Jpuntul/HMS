@@ -58,7 +58,11 @@ const EmployeeList: React.FC = () => {
 
   const fetchEmployees = async () => {
     try {
-      setLoading(true);
+      const isInitialLoad = employees.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       let url = API_ENDPOINTS.employees;
       const params = new URLSearchParams();
 

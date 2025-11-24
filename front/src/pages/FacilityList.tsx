@@ -77,7 +77,11 @@ const FacilityList: React.FC = () => {
 
   const fetchFacilities = async () => {
     try {
-      setLoading(true);
+      const isInitialLoad = facilities.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       let url = API_ENDPOINTS.facilities;
       const params = new URLSearchParams();
 

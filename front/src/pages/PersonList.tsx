@@ -71,7 +71,12 @@ const PersonList: React.FC = () => {
 
   const fetchPersons = async () => {
     try {
-      setLoading(true);
+      // Only show loading screen on initial load
+      const isInitialLoad = persons.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       let url = API_ENDPOINTS.persons;
       const params = new URLSearchParams();
 

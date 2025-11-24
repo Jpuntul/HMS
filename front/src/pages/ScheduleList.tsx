@@ -68,7 +68,11 @@ const ScheduleList: React.FC = () => {
 
   const fetchSchedules = async () => {
     try {
-      setLoading(true);
+      const isInitialLoad = schedules.length === 0;
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+
       let url = API_ENDPOINTS.schedules;
       const params = new URLSearchParams();
 
