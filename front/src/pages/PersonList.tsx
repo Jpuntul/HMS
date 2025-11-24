@@ -17,6 +17,7 @@ import {
   CalendarDaysIcon,
   PencilIcon,
   TrashIcon,
+  EyeIcon,
 } from "@heroicons/react/24/outline";
 
 // Custom debounce hook
@@ -51,7 +52,7 @@ export interface Person {
 
 const PersonList: React.FC = () => {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [persons, setPersons] = useState<Person[]>([]);
   const [filteredPersons, setFilteredPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
@@ -189,7 +190,7 @@ const PersonList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              {isAuthenticated && (
+              {user && (
                 <div className="flex space-x-3">
                   <Link
                     to="/persons/add"
@@ -322,7 +323,11 @@ const PersonList: React.FC = () => {
 
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
-                    {isAuthenticated ? (
+                    <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                      <EyeIcon className="h-3 w-3" />
+                      <span>Details</span>
+                    </button>
+                    {user && (
                       <>
                         <Link
                           to={`/persons/${person.medicare}/edit`}
@@ -339,13 +344,6 @@ const PersonList: React.FC = () => {
                           <span>Delete</span>
                         </button>
                       </>
-                    ) : (
-                      <Link
-                        to="/login"
-                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-gray-100 text-gray-600 rounded hover:bg-gray-200 transition-colors"
-                      >
-                        <span>Login to Edit/Delete</span>
-                      </Link>
                     )}
                   </div>
                 </div>

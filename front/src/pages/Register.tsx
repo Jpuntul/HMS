@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 const Register: React.FC = () => {
-  const { register, isAuthenticated, loading } = useAuth();
+  const { register, user, loading } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -25,9 +25,10 @@ const Register: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
+  // Redirect if not authenticated or not staff
+  if (!loading && (!user || !user.is_staff)) {
     return <Navigate to="/" replace />;
   }
 
@@ -82,8 +83,20 @@ const Register: React.FC = () => {
 
       if (!result.success) {
         setError(result.error || "Registration failed");
+      } else {
+        // Show success message and reset form
+        setSuccessMessage(`User ${formData.username} registered successfully!`);
+        setFormData({
+          username: "",
+          password: "",
+          confirmPassword: "",
+          email: "",
+          first_name: "",
+          last_name: "",
+        });
+        // Clear success message after 5 seconds
+        setTimeout(() => setSuccessMessage(""), 5000);
       }
-      // If successful, user will be redirected by the Navigate component above
     } catch {
       setError("An unexpected error occurred");
     } finally {
@@ -104,16 +117,23 @@ const Register: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-green-600 to-emerald-600 rounded-lg flex items-center justify-center">
+          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
             <UserPlusIcon className="h-6 w-6 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Create HMS Account
+            Register New Staff User
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            Join the Healthcare Management System
+            Create a new account for HMS staff members
           </p>
         </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="rounded-lg bg-green-50 border border-green-200 p-4">
+            <p className="text-sm text-green-800">{successMessage}</p>
+          </div>
+        )}
 
         {/* Register Form */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

@@ -131,12 +131,18 @@ def profile_view(request):
 
 
 @api_view(["POST"])
-@authentication_classes([])  # No authentication for register
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def register_view(request):
     """
-    Register a new user account
+    Register a new user account (Admin/Staff only)
     """
+    # Check if user is staff
+    if not request.user.is_staff:
+        return Response(
+            {"error": "Only staff members can register new users"},
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
     try:
         data = json.loads(request.body) if request.body else request.data
         username = data.get("username")

@@ -181,13 +181,6 @@ const Home: React.FC = () => {
               <ChartBarIcon className="h-5 w-5 mr-2" />
               View Analytics
             </Link>
-            <Link
-              to="/persons/add"
-              className="inline-flex items-center px-6 py-3 bg-white text-blue-600 border border-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors"
-            >
-              <UserIcon className="h-5 w-5 mr-2" />
-              Add New Patient
-            </Link>
           </div>
         </div>
       </div>

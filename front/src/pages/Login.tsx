@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import {
   LockClosedIcon,
@@ -75,11 +75,9 @@ const Login: React.FC = () => {
           <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
             <LockClosedIcon className="h-6 w-6 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Sign in to HMS
-          </h2>
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">Staff Login</h2>
           <p className="mt-2 text-sm text-gray-600">
-            Healthcare Management System
+            Sign in to access Healthcare Management System
           </p>
         </div>
 
@@ -175,19 +173,6 @@ const Login: React.FC = () => {
                 "Sign in"
               )}
             </button>
-          </div>
-
-          {/* Register Link */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Don't have an account?{" "}
-              <Link
-                to="/register"
-                className="font-medium text-blue-600 hover:text-blue-500 transition-colors"
-              >
-                Sign up here
-              </Link>
-            </p>
           </div>
         </form>
 

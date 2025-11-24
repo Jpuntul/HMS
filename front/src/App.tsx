@@ -165,6 +165,15 @@ const AppNavigation: React.FC = () => {
           <div className="hidden lg:flex items-center space-x-3">
             {user ? (
               <>
+                {user.is_staff && (
+                  <Link
+                    to="/register"
+                    className="flex items-center space-x-2 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium px-3 py-2 rounded-lg transition-all"
+                  >
+                    <UserCircleIcon className="h-4 w-4" />
+                    <span>Register User</span>
+                  </Link>
+                )}
                 <div className="flex items-center space-x-2 px-3 py-2 bg-gray-50 rounded-lg">
                   <UserCircleIcon className="h-5 w-5 text-gray-500" />
                   <span className="text-sm text-gray-700 font-medium">
@@ -182,20 +191,12 @@ const AppNavigation: React.FC = () => {
                 </button>
               </>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Link
-                  to="/login"
-                  className="text-blue-600 hover:text-blue-700 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 transition-all"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 rounded-lg shadow-sm transition-all"
-                >
-                  Register
-                </Link>
-              </div>
+              <Link
+                to="/login"
+                className="bg-blue-600 text-white hover:bg-blue-700 font-medium px-4 py-2 rounded-lg shadow-sm transition-all"
+              >
+                Staff Login
+              </Link>
             )}
           </div>
 
@@ -314,6 +315,16 @@ const AppNavigation: React.FC = () => {
                           : user?.username}
                       </span>
                     </div>
+                    {user.is_staff && (
+                      <Link
+                        to="/register"
+                        className="flex items-center space-x-2 px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg w-full"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        <UserCircleIcon className="h-5 w-5" />
+                        <span>Register User</span>
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         handleLogout();
@@ -327,20 +338,13 @@ const AppNavigation: React.FC = () => {
                   </div>
                 </>
               ) : (
-                <div className="border-t border-gray-200 mt-4 pt-4 space-y-2">
+                <div className="border-t border-gray-200 mt-4 pt-4">
                   <Link
                     to="/login"
-                    className="flex items-center justify-center px-3 py-2 text-blue-600 hover:bg-blue-50 rounded-lg font-medium"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    Login
-                  </Link>
-                  <Link
-                    to="/register"
                     className="flex items-center justify-center px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-lg font-medium"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    Register
+                    Staff Login
                   </Link>
                 </div>
               )}
@@ -363,7 +367,6 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
 
               {/* Publicly accessible viewing routes */}
               <Route path="/" element={<Home />} />
@@ -376,6 +379,14 @@ function App() {
               <Route path="/schedules" element={<ScheduleList />} />
 
               {/* Protected CRUD routes - require authentication */}
+              <Route
+                path="/register"
+                element={
+                  <ProtectedRoute>
+                    <Register />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/persons/add"
                 element={

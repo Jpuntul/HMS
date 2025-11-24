@@ -9,7 +9,6 @@ import {
   MapPinIcon,
   UserCircleIcon,
   EyeIcon,
-  GlobeAltIcon,
   HomeIcon,
   PlusIcon,
   PencilIcon,
@@ -372,7 +371,7 @@ const FacilityList: React.FC = () => {
                       <EyeIcon className="h-3 w-3" />
                       <span>Details</span>
                     </button>
-                    {user ? (
+                    {user && (
                       <>
                         <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
                           <PencilIcon className="h-3 w-3" />
@@ -383,14 +382,6 @@ const FacilityList: React.FC = () => {
                           <span>Delete</span>
                         </button>
                       </>
-                    ) : (
-                      <Link
-                        to="/login"
-                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                      >
-                        <GlobeAltIcon className="h-3 w-3" />
-                        <span>Login to Edit</span>
-                      </Link>
                     )}
                   </div>
                 </div>

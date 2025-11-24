@@ -11,7 +11,6 @@ import {
   PhoneIcon,
   EnvelopeIcon,
   IdentificationIcon,
-  ClockIcon,
   EyeIcon,
   PlusIcon,
   PencilIcon,
@@ -313,7 +312,7 @@ const EmployeeList: React.FC = () => {
                       <EyeIcon className="h-3 w-3" />
                       <span>Details</span>
                     </button>
-                    {user ? (
+                    {user && (
                       <>
                         <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
                           <PencilIcon className="h-3 w-3" />
@@ -324,14 +323,6 @@ const EmployeeList: React.FC = () => {
                           <span>Delete</span>
                         </button>
                       </>
-                    ) : (
-                      <Link
-                        to="/login"
-                        className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
-                      >
-                        <ClockIcon className="h-3 w-3" />
-                        <span>Login to Edit</span>
-                      </Link>
                     )}
                   </div>
                 </div>
