@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -120,19 +121,13 @@ const Dashboard: React.FC = () => {
         vaccinationsResponse,
         schedulesResponse,
       ] = await Promise.all([
-        axios.get("http://localhost:8000/api/analytics/dashboard/"),
-        axios.get("http://localhost:8000/api/analytics/demographics/"),
-        axios.get("http://localhost:8000/api/analytics/facilities/"),
+        axios.get(API_ENDPOINTS.analytics.dashboard),
+        axios.get(API_ENDPOINTS.analytics.demographics),
+        axios.get(API_ENDPOINTS.analytics.facilities),
         // Only fetch recent data for dashboard charts
-        axios.get(
-          "http://localhost:8000/api/infections/?limit=200&ordering=-date",
-        ),
-        axios.get(
-          "http://localhost:8000/api/vaccinations/?limit=200&ordering=-date",
-        ),
-        axios.get(
-          "http://localhost:8000/api/schedules/?limit=100&ordering=-date",
-        ),
+        axios.get(`${API_ENDPOINTS.infections}?limit=200&ordering=-date`),
+        axios.get(`${API_ENDPOINTS.vaccinations}?limit=200&ordering=-date`),
+        axios.get(`${API_ENDPOINTS.schedules}?limit=100&ordering=-date`),
       ]);
 
       setDashboardStats(statsResponse.data);

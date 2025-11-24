@@ -35,8 +35,6 @@ cp .env.example .env  # Configure environment variables
 npm install && npm run dev
 ```
 
-**Access:** Frontend at `http://localhost:5173` • Backend at `http://localhost:8000`
-
 > **Note:** Both frontend and backend now use `.env` files for configuration. Update `VITE_API_BASE_URL` and `PORT` as needed.
 
 ## 📚 Documentation

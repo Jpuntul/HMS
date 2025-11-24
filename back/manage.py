@@ -3,6 +3,11 @@
 import os
 import sys
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 
 def main():
     """Run administrative tasks."""
@@ -15,6 +20,14 @@ def main():
             "available on your PYTHONPATH environment variable? Did you "
             "forget to activate a virtual environment?"
         ) from exc
+
+    # If running runserver and no port specified, use PORT from .env
+    if len(sys.argv) >= 2 and sys.argv[1] == "runserver":
+        port = os.getenv("PORT", "8000")
+        # Only add port if not already specified
+        if len(sys.argv) == 2:
+            sys.argv.append(f"0.0.0.0:{port}")
+
     execute_from_command_line(sys.argv)
 
 

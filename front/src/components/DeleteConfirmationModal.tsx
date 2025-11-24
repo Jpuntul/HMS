@@ -1,5 +1,6 @@
 import { useState } from "react";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 
 interface Person {
   id: number;
@@ -30,7 +31,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     setError("");
 
     try {
-      await axios.delete(`http://localhost:8000/api/persons/${person.id}/`);
+      await axios.delete(`${API_ENDPOINTS.persons}${person.id}/`);
       onDelete();
       onClose();
     } catch (error) {

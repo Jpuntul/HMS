@@ -6,10 +6,9 @@ import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
 import Pagination from "../components/Pagination";
+import { API_ENDPOINTS } from "../config/api";
 import {
   UserIcon,
-  UserGroupIcon,
-  BuildingOfficeIcon,
   PlusIcon,
   EnvelopeIcon,
   PhoneIcon,
@@ -72,7 +71,7 @@ const PersonList: React.FC = () => {
   const fetchPersons = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/persons/";
+      let url = API_ENDPOINTS.persons;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -190,22 +189,8 @@ const PersonList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                <Link
-                  to="/employees"
-                  className="flex items-center space-x-2 px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
-                >
-                  <UserGroupIcon className="h-4 w-4" />
-                  <span>View Employees</span>
-                </Link>
-                <Link
-                  to="/facilities"
-                  className="flex items-center space-x-2 px-4 py-2 text-purple-600 border border-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
-                >
-                  <BuildingOfficeIcon className="h-4 w-4" />
-                  <span>View Facilities</span>
-                </Link>
-                {isAuthenticated ? (
+              {isAuthenticated && (
+                <div className="flex space-x-3">
                   <Link
                     to="/persons/add"
                     className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
@@ -213,16 +198,8 @@ const PersonList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Person</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Person</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

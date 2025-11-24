@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import Pagination from "../components/Pagination";
+import { API_ENDPOINTS } from "../config/api";
 import {
   ShieldCheckIcon,
   PlusIcon,
@@ -64,7 +65,7 @@ const VaccinationList: React.FC = () => {
   const fetchVaccinations = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/vaccinations/";
+      let url = API_ENDPOINTS.vaccinations;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -130,8 +131,8 @@ const VaccinationList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
+              {user && (
+                <div className="flex space-x-3">
                   <Link
                     to="/vaccinations/add"
                     className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -139,16 +140,8 @@ const VaccinationList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Vaccination Record</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Records</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 import {
   BuildingOfficeIcon,
   BuildingOffice2Icon,
-  UserIcon,
-  UserGroupIcon,
   PhoneIcon,
   MapPinIcon,
   UserCircleIcon,
@@ -80,7 +79,7 @@ const FacilityList: React.FC = () => {
   const fetchFacilities = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/facilities/";
+      let url = API_ENDPOINTS.facilities;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -181,8 +180,8 @@ const FacilityList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
+              {user && (
+                <div className="flex space-x-3">
                   <Link
                     to="/add-facility"
                     className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -190,30 +189,8 @@ const FacilityList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Facility</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Facility</span>
-                  </Link>
-                )}
-                <Link
-                  to="/persons"
-                  className="flex items-center space-x-2 px-4 py-2 text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-50 transition-colors"
-                >
-                  <UserIcon className="h-4 w-4" />
-                  <span>View Persons</span>
-                </Link>
-                <Link
-                  to="/employees"
-                  className="flex items-center space-x-2 px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
-                >
-                  <UserGroupIcon className="h-4 w-4" />
-                  <span>View Employees</span>
-                </Link>
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

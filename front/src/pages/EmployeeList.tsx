@@ -5,6 +5,7 @@ import SearchBar from "../components/SearchBar";
 import FilterDropdown from "../components/FilterDropdown";
 import Pagination from "../components/Pagination";
 import { useAuth } from "../contexts/AuthContext";
+import { API_ENDPOINTS } from "../config/api";
 import {
   UserGroupIcon,
   PhoneIcon,
@@ -59,7 +60,7 @@ const EmployeeList: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/employees/";
+      let url = API_ENDPOINTS.employees;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -146,8 +147,8 @@ const EmployeeList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
+              {user && (
+                <div className="flex space-x-3">
                   <Link
                     to="/add-employee"
                     className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
@@ -155,16 +156,8 @@ const EmployeeList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Employee</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Employee</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

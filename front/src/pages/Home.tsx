@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 import {
   BuildingOffice2Icon,
   ChartBarIcon,
@@ -28,9 +29,7 @@ const Home: React.FC = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await axios.get(
-        "http://localhost:8000/api/analytics/dashboard/",
-      );
+      const response = await axios.get(API_ENDPOINTS.analytics.dashboard);
       setStats(response.data);
       setLoading(false);
     } catch {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 
 interface PersonFormData {
   ssn: string;
@@ -41,9 +42,7 @@ const EditPerson: React.FC = () => {
       }
 
       try {
-        const response = await axios.get(
-          `http://localhost:8000/api/persons/${id}/`,
-        );
+        const response = await axios.get(`${API_ENDPOINTS.persons}${id}/`);
         setFormData(response.data);
       } catch (error) {
         console.error("Error fetching person:", error);
@@ -100,7 +99,7 @@ const EditPerson: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`http://localhost:8000/api/persons/${id}/`, formData);
+      await axios.put(`${API_ENDPOINTS.persons}${id}/`, formData);
       navigate("/persons", {
         state: { message: "Person updated successfully!" },
       });

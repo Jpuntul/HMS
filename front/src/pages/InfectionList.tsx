@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import Pagination from "../components/Pagination";
+import { API_ENDPOINTS } from "../config/api";
 import {
   ExclamationTriangleIcon,
   PlusIcon,
@@ -60,7 +61,7 @@ const InfectionList: React.FC = () => {
   const fetchInfections = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/infections/";
+      let url = API_ENDPOINTS.infections;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -120,8 +121,8 @@ const InfectionList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
+              {user && (
+                <div className="flex space-x-3">
                   <Link
                     to="/infections/add"
                     className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
@@ -129,16 +130,8 @@ const InfectionList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Infection Record</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Records</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

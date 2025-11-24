@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../contexts/AuthContext";
 import Pagination from "../components/Pagination";
+import { API_ENDPOINTS } from "../config/api";
 import {
   ClockIcon,
   PlusIcon,
@@ -68,7 +69,7 @@ const ScheduleList: React.FC = () => {
   const fetchSchedules = async () => {
     try {
       setLoading(true);
-      let url = "http://localhost:8000/api/schedules/";
+      let url = API_ENDPOINTS.schedules;
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
@@ -168,8 +169,8 @@ const ScheduleList: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex space-x-3">
-                {user ? (
+              {user && (
+                <div className="flex space-x-3">
                   <Link
                     to="/schedules/add"
                     className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -177,16 +178,8 @@ const ScheduleList: React.FC = () => {
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Schedule</span>
                   </Link>
-                ) : (
-                  <Link
-                    to="/login"
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Login to Add Schedule</span>
-                  </Link>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_ENDPOINTS } from "../config/api";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 
 interface PersonFormData {
@@ -75,7 +76,7 @@ const AddPerson: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.post("http://localhost:8000/api/persons/", formData);
+      await axios.post(API_ENDPOINTS.persons, formData);
       navigate("/persons", {
         state: { message: "Person added successfully!" },
       });

@@ -4,12 +4,17 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import (
+    api_view,
+    authentication_classes,
+    permission_classes,
+)
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 
 @api_view(["POST"])
+@authentication_classes([])  # No authentication for login
 @permission_classes([AllowAny])
 def login_view(request):
     """
@@ -126,6 +131,7 @@ def profile_view(request):
 
 
 @api_view(["POST"])
+@authentication_classes([])  # No authentication for register
 @permission_classes([AllowAny])
 def register_view(request):
     """
