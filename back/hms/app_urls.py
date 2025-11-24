@@ -1,37 +1,34 @@
 from django.urls import path
-from .views import (
-    PersonListCreateView,
-    PersonDetailView,
-    EmployeeListCreateView,
-    EmployeeDetailView,
-    FacilityListCreateView,
-    FacilityDetailView,
-    ResidenceListCreateView,
-    ResidenceDetailView,
-    InfectionTypeListCreateView,
-    InfectionTypeDetailView,
-    InfectionListCreateView,
-    InfectionDetailView,
-    VaccineTypeListCreateView,
-    VaccineTypeDetailView,
-    VaccinationListCreateView,
-    VaccinationDetailView,
-    EmploymentListCreateView,
-    EmploymentDetailView,
-    ScheduleListCreateView,
-    ScheduleDetailView,
-)
-from .analytics import (
-    dashboard_stats,
-    facility_analytics,
-    person_demographics,
-)
+
+from .analytics import dashboard_stats, facility_analytics, person_demographics
 from .auth_views import (
+    check_auth_view,
     login_view,
     logout_view,
     profile_view,
     register_view,
-    check_auth_view,
+)
+from .views import (
+    EmployeeDetailView,
+    EmployeeListCreateView,
+    EmploymentDetailView,
+    EmploymentListCreateView,
+    FacilityDetailView,
+    FacilityListCreateView,
+    InfectionDetailView,
+    InfectionListCreateView,
+    InfectionTypeDetailView,
+    InfectionTypeListCreateView,
+    PersonDetailView,
+    PersonListCreateView,
+    ResidenceDetailView,
+    ResidenceListCreateView,
+    ScheduleDetailView,
+    ScheduleListCreateView,
+    VaccinationDetailView,
+    VaccinationListCreateView,
+    VaccineTypeDetailView,
+    VaccineTypeListCreateView,
 )
 
 urlpatterns = [

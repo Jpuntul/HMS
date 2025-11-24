@@ -1,31 +1,32 @@
-from rest_framework import generics
-from rest_framework.filters import SearchFilter, OrderingFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import generics
+from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
 from .models import (
-    Person,
     Employee,
-    Facility,
-    Residence,
-    InfectionType,
-    Infection,
-    VaccineType,
-    Vaccination,
     Employment,
+    Facility,
+    Infection,
+    InfectionType,
+    Person,
+    Residence,
     Schedule,
+    Vaccination,
+    VaccineType,
 )
 from .serializers import (
-    PersonSerializer,
     EmployeeSerializer,
-    FacilitySerializer,
-    ResidenceSerializer,
-    InfectionTypeSerializer,
-    InfectionSerializer,
-    VaccineTypeSerializer,
-    VaccinationSerializer,
     EmploymentSerializer,
+    FacilitySerializer,
+    InfectionSerializer,
+    InfectionTypeSerializer,
+    PersonSerializer,
+    ResidenceSerializer,
     ScheduleSerializer,
+    VaccinationSerializer,
+    VaccineTypeSerializer,
 )
 
 
@@ -84,7 +85,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
                     | Q(ssn__icontains=search)
                     | Q(role__icontains=search)
                 )
-            except:
+            except Exception:
                 pass
         return queryset
 

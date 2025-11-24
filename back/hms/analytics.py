@@ -1,10 +1,12 @@
-from django.db.models import Count, Q
+from datetime import datetime, timedelta
+
+from django.db.models import Count
 from django.db.models.functions import Extract
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from .models import Person, Employee, Facility
-from datetime import datetime, timedelta
+
+from .models import Employee, Facility, Person
 
 
 @api_view(["GET"])

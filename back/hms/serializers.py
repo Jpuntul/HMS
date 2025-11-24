@@ -1,15 +1,16 @@
 from rest_framework import serializers
+
 from .models import (
-    Person,
     Employee,
-    Facility,
-    Residence,
-    InfectionType,
-    Infection,
-    VaccineType,
-    Vaccination,
     Employment,
+    Facility,
+    Infection,
+    InfectionType,
+    Person,
+    Residence,
     Schedule,
+    Vaccination,
+    VaccineType,
 )
 
 

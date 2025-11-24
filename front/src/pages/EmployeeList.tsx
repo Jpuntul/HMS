@@ -7,8 +7,6 @@ import Pagination from "../components/Pagination";
 import { useAuth } from "../contexts/AuthContext";
 import {
   UserGroupIcon,
-  UserIcon,
-  BuildingOfficeIcon,
   PhoneIcon,
   EnvelopeIcon,
   IdentificationIcon,
