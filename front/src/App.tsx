@@ -2,18 +2,50 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import { useState } from "react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import PersonList from "./pages/PersonList";
-import AddPerson from "./pages/AddPerson";
-import EditPerson from "./pages/EditPerson";
-import EmployeeList from "./pages/EmployeeList";
-import FacilityList from "./pages/FacilityList";
-import InfectionList from "./pages/InfectionList";
-import VaccinationList from "./pages/VaccinationList";
-import ScheduleList from "./pages/ScheduleList";
-import Dashboard from "./pages/Dashboard";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
+
+// Auth pages
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+// Dashboard pages
+import Home from "./pages/dashboard/Home";
+import Dashboard from "./pages/dashboard/Dashboard";
+
+// Person pages
+import PersonList from "./pages/person/PersonList";
+import AddPerson from "./pages/person/AddPerson";
+import EditPerson from "./pages/person/EditPerson";
+import PersonDetail from "./pages/person/PersonDetail";
+
+// Employee pages
+import EmployeeList from "./pages/employee/EmployeeList";
+import AddEmployee from "./pages/employee/AddEmployee";
+import EditEmployee from "./pages/employee/EditEmployee";
+import EmployeeDetail from "./pages/employee/EmployeeDetail";
+
+// Facility pages
+import FacilityList from "./pages/facility/FacilityList";
+import AddFacility from "./pages/facility/AddFacility";
+import EditFacility from "./pages/facility/EditFacility";
+import FacilityDetail from "./pages/facility/FacilityDetail";
+
+// Infection pages
+import InfectionList from "./pages/infection/InfectionList";
+import AddInfection from "./pages/infection/AddInfection";
+import EditInfection from "./pages/infection/EditInfection";
+import InfectionDetail from "./pages/infection/InfectionDetail";
+
+// Vaccination pages
+import VaccinationList from "./pages/vaccination/VaccinationList";
+import AddVaccination from "./pages/vaccination/AddVaccination";
+import EditVaccination from "./pages/vaccination/EditVaccination";
+import VaccinationDetail from "./pages/vaccination/VaccinationDetail";
+
+// Schedule pages
+import ScheduleList from "./pages/schedule/ScheduleList";
+import AddSchedule from "./pages/schedule/AddSchedule";
+import EditSchedule from "./pages/schedule/EditSchedule";
+import ScheduleDetail from "./pages/schedule/ScheduleDetail";
 import {
   HomeIcon,
   UserIcon,
@@ -371,22 +403,10 @@ function App() {
               {/* Publicly accessible viewing routes */}
               <Route path="/" element={<Home />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/persons" element={<PersonList />} />
-              <Route path="/employees" element={<EmployeeList />} />
-              <Route path="/facilities" element={<FacilityList />} />
-              <Route path="/infections" element={<InfectionList />} />
-              <Route path="/vaccinations" element={<VaccinationList />} />
-              <Route path="/schedules" element={<ScheduleList />} />
 
-              {/* Protected CRUD routes - require authentication */}
-              <Route
-                path="/register"
-                element={
-                  <ProtectedRoute>
-                    <Register />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Person routes */}
+              <Route path="/persons" element={<PersonList />} />
+              <Route path="/persons/:id" element={<PersonDetail />} />
               <Route
                 path="/persons/add"
                 element={
@@ -400,6 +420,116 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <EditPerson />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Employee routes */}
+              <Route path="/employees" element={<EmployeeList />} />
+              <Route path="/employees/:id" element={<EmployeeDetail />} />
+              <Route
+                path="/employees/add"
+                element={
+                  <ProtectedRoute>
+                    <AddEmployee />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/employees/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditEmployee />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Facility routes */}
+              <Route path="/facilities" element={<FacilityList />} />
+              <Route path="/facilities/:id" element={<FacilityDetail />} />
+              <Route
+                path="/facilities/add"
+                element={
+                  <ProtectedRoute>
+                    <AddFacility />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/facilities/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditFacility />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Infection routes */}
+              <Route path="/infections" element={<InfectionList />} />
+              <Route path="/infections/:id" element={<InfectionDetail />} />
+              <Route
+                path="/infections/add"
+                element={
+                  <ProtectedRoute>
+                    <AddInfection />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/infections/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditInfection />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Vaccination routes */}
+              <Route path="/vaccinations" element={<VaccinationList />} />
+              <Route path="/vaccinations/:id" element={<VaccinationDetail />} />
+              <Route
+                path="/vaccinations/add"
+                element={
+                  <ProtectedRoute>
+                    <AddVaccination />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/vaccinations/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditVaccination />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Schedule routes */}
+              <Route path="/schedules" element={<ScheduleList />} />
+              <Route path="/schedules/:id" element={<ScheduleDetail />} />
+              <Route
+                path="/schedules/add"
+                element={
+                  <ProtectedRoute>
+                    <AddSchedule />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/schedules/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditSchedule />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Protected admin routes */}
+              <Route
+                path="/register"
+                element={
+                  <ProtectedRoute>
+                    <Register />
                   </ProtectedRoute>
                 }
               />
