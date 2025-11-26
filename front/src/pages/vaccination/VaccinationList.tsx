@@ -10,6 +10,9 @@ import {
   CalendarIcon,
   UserIcon,
   BuildingOfficeIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 interface Vaccination {
@@ -220,6 +223,9 @@ const VaccinationList: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Facility
                 </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -257,6 +263,37 @@ const VaccinationList: React.FC = () => {
                     <div className="flex items-center text-sm text-gray-500">
                       <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
                       {vaccination.facility_name}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end space-x-2">
+                      <Link
+                        to={`/vaccinations/${vaccination.ssn}`}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </Link>
+                      {user && (
+                        <>
+                          <Link
+                            to={`/vaccinations/${vaccination.ssn}/edit`}
+                            className="text-green-600 hover:text-green-900"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-5 w-5" />
+                          </Link>
+                          <button
+                            onClick={() =>
+                              alert("Delete functionality coming soon")
+                            }
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

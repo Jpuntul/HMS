@@ -328,15 +328,18 @@ const PersonList: React.FC = () => {
 
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
-                    <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                    <Link
+                      to={`/persons/${person.medicare}`}
+                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                    >
                       <EyeIcon className="h-3 w-3" />
                       <span>Details</span>
-                    </button>
+                    </Link>
                     {user && (
                       <>
                         <Link
                           to={`/persons/${person.medicare}/edit`}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
                         >
                           <PencilIcon className="h-3 w-3" />
                           <span>Edit</span>

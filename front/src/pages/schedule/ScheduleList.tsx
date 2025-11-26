@@ -11,6 +11,9 @@ import {
   UserIcon,
   BuildingOfficeIcon,
   FunnelIcon,
+  EyeIcon,
+  PencilIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 interface Schedule {
@@ -338,8 +341,39 @@ const ScheduleList: React.FC = () => {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="text-xs text-gray-500">
-                    SSN: {schedule.essn} • Facility ID: {schedule.fid}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">
+                      SSN: {schedule.essn} • Facility ID: {schedule.fid}
+                    </div>
+                    <div className="flex space-x-2">
+                      <Link
+                        to={`/schedules/${schedule.essn}`}
+                        className="text-blue-600 hover:text-blue-900"
+                        title="View Details"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </Link>
+                      {user && (
+                        <>
+                          <Link
+                            to={`/schedules/${schedule.essn}/edit`}
+                            className="text-green-600 hover:text-green-900"
+                            title="Edit"
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </Link>
+                          <button
+                            onClick={() =>
+                              alert("Delete functionality coming soon")
+                            }
+                            className="text-red-600 hover:text-red-900"
+                            title="Delete"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

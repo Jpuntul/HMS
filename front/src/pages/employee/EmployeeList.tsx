@@ -310,19 +310,30 @@ const EmployeeList: React.FC = () => {
                   )}
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-100">
+                <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
-                    <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors">
+                    <Link
+                      to={`/employees/${employee.ssn}`}
+                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                    >
                       <EyeIcon className="h-3 w-3" />
                       <span>Details</span>
-                    </button>
+                    </Link>
                     {user && (
                       <>
-                        <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors">
+                        <Link
+                          to={`/employees/${employee.ssn}/edit`}
+                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                        >
                           <PencilIcon className="h-3 w-3" />
                           <span>Edit</span>
-                        </button>
-                        <button className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors">
+                        </Link>
+                        <button
+                          onClick={() =>
+                            alert("Delete functionality coming soon")
+                          }
+                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
+                        >
                           <TrashIcon className="h-3 w-3" />
                           <span>Delete</span>
                         </button>
