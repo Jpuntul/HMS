@@ -84,6 +84,8 @@ const ScheduleList: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, selectedRole, selectedFacility]);
 
+  const itemsPerPage = 18;
+
   const fetchSchedules = async () => {
     try {
       const isInitialLoad = schedules.length === 0;
@@ -95,6 +97,7 @@ const ScheduleList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -115,7 +118,9 @@ const ScheduleList: React.FC = () => {
       const data = response.data.results || response.data;
       setSchedules(Array.isArray(data) ? data : []);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
       setLoading(false);
     } catch {
       setError("Failed to fetch schedules");
@@ -502,7 +507,7 @@ const ScheduleList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
       </div>

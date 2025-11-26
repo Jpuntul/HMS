@@ -58,10 +58,33 @@ const EmployeeList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [roleOptions, setRoleOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
   const { user } = useAuth();
 
   // Debounce search term
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Fetch filter options on component mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const response = await axios.get(API_ENDPOINTS.employeesFilterOptions);
+        const roles = response.data.roles.map((r: string) => ({
+          value: r,
+          label: r.charAt(0).toUpperCase() + r.slice(1),
+        }));
+        setRoleOptions(roles);
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+
+  const itemsPerPage = 24;
 
   const fetchEmployees = async () => {
     try {
@@ -74,6 +97,7 @@ const EmployeeList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -91,7 +115,9 @@ const EmployeeList: React.FC = () => {
       const data = response.data.results || response.data;
       setEmployees(Array.isArray(data) ? data : []);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
       setLoading(false);
     } catch {
       setError("Failed to fetch employees");
@@ -217,56 +243,7 @@ const EmployeeList: React.FC = () => {
                 label="Role"
                 value={roleFilter}
                 onChange={setRoleFilter}
-                options={[
-                  {
-                    value: "doctor",
-                    label: "Doctor",
-                    count: employees.filter((e) => e.role === "doctor").length,
-                  },
-                  {
-                    value: "nurse",
-                    label: "Nurse",
-                    count: employees.filter((e) => e.role === "nurse").length,
-                  },
-                  {
-                    value: "pharmacist",
-                    label: "Pharmacist",
-                    count: employees.filter((e) => e.role === "pharmacist")
-                      .length,
-                  },
-                  {
-                    value: "cashier",
-                    label: "Cashier",
-                    count: employees.filter((e) => e.role === "cashier").length,
-                  },
-                  {
-                    value: "receptionist",
-                    label: "Receptionist",
-                    count: employees.filter((e) => e.role === "receptionist")
-                      .length,
-                  },
-                  {
-                    value: "administrative personnel",
-                    label: "Administrative Personnel",
-                    count: employees.filter(
-                      (e) => e.role === "administrative personnel",
-                    ).length,
-                  },
-                  {
-                    value: "security personnel",
-                    label: "Security Personnel",
-                    count: employees.filter(
-                      (e) => e.role === "security personnel",
-                    ).length,
-                  },
-                  {
-                    value: "regular employee",
-                    label: "Regular Employee",
-                    count: employees.filter(
-                      (e) => e.role === "regular employee",
-                    ).length,
-                  },
-                ]}
+                options={roleOptions}
               />
             </div>
           </div>
@@ -401,7 +378,7 @@ const EmployeeList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
       </div>

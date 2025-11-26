@@ -29,6 +29,8 @@ from .views import (
     VaccinationListCreateView,
     VaccineTypeDetailView,
     VaccineTypeListCreateView,
+    employee_filter_options,
+    person_filter_options,
 )
 
 urlpatterns = [
@@ -38,6 +40,15 @@ urlpatterns = [
     path("auth/profile/", profile_view, name="profile"),
     path("auth/register/", register_view, name="register"),
     path("auth/check/", check_auth_view, name="check-auth"),
+    # Filter options endpoints (must come before detail endpoints)
+    path(
+        "persons/filter-options/", person_filter_options, name="person-filter-options"
+    ),
+    path(
+        "employees/filter-options/",
+        employee_filter_options,
+        name="employee-filter-options",
+    ),
     # Person endpoints
     path("persons/", PersonListCreateView.as_view(), name="person-list-create"),
     path(

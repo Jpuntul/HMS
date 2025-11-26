@@ -90,6 +90,8 @@ const FacilityList: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, typeFilter]);
 
+  const itemsPerPage = 20;
+
   const fetchFacilities = async () => {
     try {
       const isInitialLoad = facilities.length === 0;
@@ -101,6 +103,7 @@ const FacilityList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -118,7 +121,9 @@ const FacilityList: React.FC = () => {
       const data = response.data.results || response.data;
       setFacilities(Array.isArray(data) ? data : []);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
       setLoading(false);
     } catch {
       setError("Failed to fetch facilities");
@@ -460,7 +465,7 @@ const FacilityList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
       </div>

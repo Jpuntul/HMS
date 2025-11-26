@@ -12,9 +12,11 @@ export const API_ENDPOINTS = {
 
   // Persons
   persons: `${API_BASE_URL}/api/persons/`,
+  personsFilterOptions: `${API_BASE_URL}/api/persons/filter-options/`,
 
   // Employees
   employees: `${API_BASE_URL}/api/employees/`,
+  employeesFilterOptions: `${API_BASE_URL}/api/employees/filter-options/`,
 
   // Facilities
   facilities: `${API_BASE_URL}/api/facilities/`,

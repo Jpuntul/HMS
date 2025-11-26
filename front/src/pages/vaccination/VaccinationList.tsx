@@ -79,6 +79,8 @@ const VaccinationList: React.FC = () => {
     setCurrentPage(1);
   }, [debouncedSearchTerm]);
 
+  const itemsPerPage = 20;
+
   const fetchVaccinations = async () => {
     try {
       const isInitialLoad = vaccinations.length === 0;
@@ -90,6 +92,7 @@ const VaccinationList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -104,7 +107,9 @@ const VaccinationList: React.FC = () => {
       const data = response.data.results || response.data;
       setVaccinations(Array.isArray(data) ? data : []);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
       setLoading(false);
     } catch {
       setError("Failed to fetch vaccinations");
@@ -358,7 +363,7 @@ const VaccinationList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
       </div>

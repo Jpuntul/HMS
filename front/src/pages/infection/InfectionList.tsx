@@ -92,6 +92,8 @@ const InfectionList: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
+  const itemsPerPage = 20;
+
   const fetchInfections = async () => {
     try {
       const isInitialLoad = infections.length === 0;
@@ -102,6 +104,7 @@ const InfectionList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -116,7 +119,9 @@ const InfectionList: React.FC = () => {
       const data = response.data.results || response.data;
       setInfections(Array.isArray(data) ? data : []);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
       setLoading(false);
     } catch {
       setError("Failed to fetch infections");
@@ -320,7 +325,7 @@ const InfectionList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
       </div>

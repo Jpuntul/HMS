@@ -38,9 +38,8 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 export interface Person {
-  id: number;
-  ssn: string;
   medicare: string;
+  ssn: number;
   first_name: string;
   last_name: string;
   dob: string;
@@ -65,9 +64,40 @@ const PersonList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [citizenshipOptions, setCitizenshipOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+  const [occupationOptions, setOccupationOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
 
   // Debounce search term to reduce API calls
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // Fetch filter options on component mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
+      try {
+        const response = await axios.get(API_ENDPOINTS.personsFilterOptions);
+        const citizenships = response.data.citizenships.map((c: string) => ({
+          value: c,
+          label: c,
+        }));
+        const occupations = response.data.occupations.map((o: string) => ({
+          value: o,
+          label: o,
+        }));
+        setCitizenshipOptions(citizenships);
+        setOccupationOptions(occupations);
+      } catch (error) {
+        console.error("Error fetching filter options:", error);
+      }
+    };
+
+    fetchFilterOptions();
+  }, []);
+
+  const itemsPerPage = 18;
 
   const fetchPersons = async () => {
     try {
@@ -81,6 +111,7 @@ const PersonList: React.FC = () => {
       const params = new URLSearchParams();
 
       params.append("page", currentPage.toString());
+      params.append("page_size", itemsPerPage.toString());
 
       if (debouncedSearchTerm) {
         params.append("search", debouncedSearchTerm);
@@ -101,7 +132,9 @@ const PersonList: React.FC = () => {
       setPersons(data);
       setFilteredPersons(data);
       setTotalCount(response.data.count || data.length);
-      setTotalPages(Math.ceil((response.data.count || data.length) / 20));
+      setTotalPages(
+        Math.ceil((response.data.count || data.length) / itemsPerPage),
+      );
     } catch (error) {
       console.error(error);
     } finally {
@@ -131,26 +164,6 @@ const PersonList: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, citizenshipFilter, occupationFilter]);
-
-  // Get unique values for filters
-  const uniqueCitizenships = [
-    ...new Set(persons.filter((p) => p.citizenship).map((p) => p.citizenship)),
-  ];
-  const uniqueOccupations = [
-    ...new Set(persons.filter((p) => p.occupation).map((p) => p.occupation)),
-  ];
-
-  const citizenshipOptions = uniqueCitizenships.map((citizenship) => ({
-    value: citizenship!,
-    label: citizenship!,
-    count: persons.filter((p) => p.citizenship === citizenship).length,
-  }));
-
-  const occupationOptions = uniqueOccupations.map((occupation) => ({
-    value: occupation!,
-    label: occupation!,
-    count: persons.filter((p) => p.occupation === occupation).length,
-  }));
 
   const handleDeleteClick = (person: Person) => {
     setPersonToDelete(person);
@@ -272,7 +285,7 @@ const PersonList: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPersons.map((person) => (
             <div
-              key={person.id}
+              key={person.medicare}
               className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
             >
               <div className="p-6">
@@ -379,7 +392,7 @@ const PersonList: React.FC = () => {
             totalPages={totalPages}
             totalCount={totalCount}
             onPageChange={setCurrentPage}
-            itemsPerPage={20}
+            itemsPerPage={itemsPerPage}
           />
         )}
 

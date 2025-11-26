@@ -1,8 +1,10 @@
 from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
+from rest_framework.decorators import api_view
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from rest_framework.response import Response
 
 from .models import (
     Employee,
@@ -229,3 +231,42 @@ class ScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Schedule.objects.all()
     serializer_class = ScheduleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+
+# Filter Options Views
+@api_view(["GET"])
+def person_filter_options(request):
+    """Get unique values for person filters"""
+    citizenships = (
+        Person.objects.exclude(citizenship__isnull=True)
+        .exclude(citizenship="")
+        .values_list("citizenship", flat=True)
+        .distinct()
+        .order_by("citizenship")
+    )
+
+    occupations = (
+        Person.objects.exclude(occupation__isnull=True)
+        .exclude(occupation="")
+        .values_list("occupation", flat=True)
+        .distinct()
+        .order_by("occupation")
+    )
+
+    return Response(
+        {"citizenships": list(citizenships), "occupations": list(occupations)}
+    )
+
+
+@api_view(["GET"])
+def employee_filter_options(request):
+    """Get unique values for employee filters"""
+    roles = (
+        Employee.objects.exclude(role__isnull=True)
+        .exclude(role="")
+        .values_list("role", flat=True)
+        .distinct()
+        .order_by("role")
+    )
+
+    return Response({"roles": list(roles)})
