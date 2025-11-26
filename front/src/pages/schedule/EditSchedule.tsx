@@ -56,7 +56,9 @@ const EditSchedule: React.FC = () => {
         setFormData(scheduleResponse.data);
         setEmployeeName(scheduleResponse.data.employee_name || "");
         setEmployeeRole(scheduleResponse.data.employee_role || "");
-        setFacilities(facilitiesResponse.data);
+        setFacilities(
+          facilitiesResponse.data.results || facilitiesResponse.data,
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load schedule data." });

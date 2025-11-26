@@ -21,9 +21,11 @@ export const API_ENDPOINTS = {
 
   // Infections
   infections: `${API_BASE_URL}/api/infections/`,
+  infectionTypes: `${API_BASE_URL}/api/infection-types/`,
 
   // Vaccinations
   vaccinations: `${API_BASE_URL}/api/vaccinations/`,
+  vaccineTypes: `${API_BASE_URL}/api/vaccine-types/`,
 
   // Schedules
   schedules: `${API_BASE_URL}/api/schedules/`,

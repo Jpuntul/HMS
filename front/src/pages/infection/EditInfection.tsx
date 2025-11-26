@@ -5,8 +5,8 @@ import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 
 interface InfectionType {
-  id: number;
-  name: string;
+  type_id: number;
+  type_name: string;
 }
 
 interface InfectionFormData {
@@ -43,11 +43,11 @@ const EditInfection: React.FC = () => {
       try {
         const [infectionResponse, typesResponse] = await Promise.all([
           axios.get(`${API_ENDPOINTS.infections}${id}/`),
-          axios.get(`${API_ENDPOINTS.infections}types/`),
+          axios.get(API_ENDPOINTS.infectionTypes),
         ]);
         setFormData(infectionResponse.data);
         setPersonName(infectionResponse.data.person_name || "");
-        setInfectionTypes(typesResponse.data);
+        setInfectionTypes(typesResponse.data.results || typesResponse.data);
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load infection data." });
@@ -183,8 +183,8 @@ const EditInfection: React.FC = () => {
                 >
                   <option value="">-- Select infection type --</option>
                   {infectionTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
+                    <option key={type.type_id} value={type.type_id}>
+                      {type.type_name}
                     </option>
                   ))}
                 </select>

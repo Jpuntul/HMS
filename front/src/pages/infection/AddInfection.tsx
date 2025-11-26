@@ -12,8 +12,8 @@ interface Person {
 }
 
 interface InfectionType {
-  id: number;
-  name: string;
+  type_id: number;
+  type_name: string;
 }
 
 interface InfectionFormData {
@@ -42,10 +42,10 @@ const AddInfection: React.FC = () => {
       try {
         const [personsResponse, typesResponse] = await Promise.all([
           axios.get(API_ENDPOINTS.persons),
-          axios.get(`${API_ENDPOINTS.infections}types/`),
+          axios.get(API_ENDPOINTS.infectionTypes),
         ]);
-        setPersons(personsResponse.data);
-        setInfectionTypes(typesResponse.data);
+        setPersons(personsResponse.data.results || personsResponse.data);
+        setInfectionTypes(typesResponse.data.results || typesResponse.data);
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load required data." });
@@ -190,8 +190,8 @@ const AddInfection: React.FC = () => {
                 >
                   <option value="">-- Select infection type --</option>
                   {infectionTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
+                    <option key={type.type_id} value={type.type_id}>
+                      {type.type_name}
                     </option>
                   ))}
                 </select>

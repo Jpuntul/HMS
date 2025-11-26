@@ -43,7 +43,7 @@ const AddEmployee: React.FC = () => {
     const fetchPersons = async () => {
       try {
         const response = await axios.get(API_ENDPOINTS.persons);
-        setPersons(response.data);
+        setPersons(response.data.results || response.data);
       } catch (error) {
         console.error("Error fetching persons:", error);
         setErrors({ general: "Failed to load persons list." });

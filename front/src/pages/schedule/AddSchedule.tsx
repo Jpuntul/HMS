@@ -49,8 +49,10 @@ const AddSchedule: React.FC = () => {
           axios.get(API_ENDPOINTS.employees),
           axios.get(API_ENDPOINTS.facilities),
         ]);
-        setEmployees(employeesResponse.data);
-        setFacilities(facilitiesResponse.data);
+        setEmployees(employeesResponse.data.results || employeesResponse.data);
+        setFacilities(
+          facilitiesResponse.data.results || facilitiesResponse.data,
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load required data." });

@@ -12,8 +12,8 @@ interface Person {
 }
 
 interface VaccineType {
-  id: number;
-  name: string;
+  type_id: number;
+  type_name: string;
 }
 
 interface Facility {
@@ -56,12 +56,14 @@ const AddVaccination: React.FC = () => {
         const [personsResponse, typesResponse, facilitiesResponse] =
           await Promise.all([
             axios.get(API_ENDPOINTS.persons),
-            axios.get(`${API_ENDPOINTS.vaccinations}types/`),
+            axios.get(API_ENDPOINTS.vaccineTypes),
             axios.get(API_ENDPOINTS.facilities),
           ]);
-        setPersons(personsResponse.data);
-        setVaccineTypes(typesResponse.data);
-        setFacilities(facilitiesResponse.data);
+        setPersons(personsResponse.data.results || personsResponse.data);
+        setVaccineTypes(typesResponse.data.results || typesResponse.data);
+        setFacilities(
+          facilitiesResponse.data.results || facilitiesResponse.data,
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load required data." });
@@ -214,8 +216,8 @@ const AddVaccination: React.FC = () => {
                 >
                   <option value="">-- Select vaccine type --</option>
                   {vaccineTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
+                    <option key={type.type_id} value={type.type_id}>
+                      {type.type_name}
                     </option>
                   ))}
                 </select>

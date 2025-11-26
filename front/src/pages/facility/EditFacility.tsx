@@ -67,7 +67,7 @@ const EditFacility: React.FC = () => {
           axios.get(API_ENDPOINTS.persons),
         ]);
         setFormData(facilityRes.data);
-        setPersons(personsRes.data);
+        setPersons(personsRes.data.results || personsRes.data);
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load facility data." });

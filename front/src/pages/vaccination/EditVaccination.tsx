@@ -5,8 +5,8 @@ import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 
 interface VaccineType {
-  id: number;
-  name: string;
+  type_id: number;
+  type_name: string;
 }
 
 interface Facility {
@@ -58,13 +58,15 @@ const EditVaccination: React.FC = () => {
         const [vaccinationResponse, typesResponse, facilitiesResponse] =
           await Promise.all([
             axios.get(`${API_ENDPOINTS.vaccinations}${id}/`),
-            axios.get(`${API_ENDPOINTS.vaccinations}types/`),
+            axios.get(API_ENDPOINTS.vaccineTypes),
             axios.get(API_ENDPOINTS.facilities),
           ]);
         setFormData(vaccinationResponse.data);
         setPersonName(vaccinationResponse.data.person_name || "");
-        setVaccineTypes(typesResponse.data);
-        setFacilities(facilitiesResponse.data);
+        setVaccineTypes(typesResponse.data.results || typesResponse.data);
+        setFacilities(
+          facilitiesResponse.data.results || facilitiesResponse.data,
+        );
       } catch (error) {
         console.error("Error fetching data:", error);
         setErrors({ general: "Failed to load vaccination data." });
@@ -212,8 +214,8 @@ const EditVaccination: React.FC = () => {
                 >
                   <option value="">-- Select vaccine type --</option>
                   {vaccineTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
+                    <option key={type.type_id} value={type.type_id}>
+                      {type.type_name}
                     </option>
                   ))}
                 </select>
