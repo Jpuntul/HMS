@@ -1,0 +1,201 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import { API_ENDPOINTS } from "../../config/api";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
+
+interface EmployeeFormData {
+  ssn: number;
+  role: string;
+}
+
+const ROLE_CHOICES = [
+  { value: "nurse", label: "Nurse" },
+  { value: "doctor", label: "Doctor" },
+  { value: "cashier", label: "Cashier" },
+  { value: "pharmacist", label: "Pharmacist" },
+  { value: "receptionist", label: "Receptionist" },
+  { value: "administrative personnel", label: "Administrative Personnel" },
+  { value: "security personnel", label: "Security Personnel" },
+  { value: "regular employee", label: "Regular Employee" },
+];
+
+const EditEmployee: React.FC = () => {
+  const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<EmployeeFormData>({
+    ssn: 0,
+    role: "",
+  });
+  const [personName, setPersonName] = useState<string>("");
+
+  // Load employee data when component mounts
+  useEffect(() => {
+    const fetchEmployee = async () => {
+      if (!id) {
+        navigate("/employees");
+        return;
+      }
+
+      try {
+        const response = await axios.get(`${API_ENDPOINTS.employees}${id}/`);
+        setFormData(response.data);
+        setPersonName(response.data.person_name || "");
+      } catch (error) {
+        console.error("Error fetching employee:", error);
+        setErrors({ general: "Failed to load employee data." });
+      } finally {
+        setInitialLoading(false);
+      }
+    };
+
+    fetchEmployee();
+  }, [id, navigate]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.role) newErrors.role = "Please select a role";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      await axios.put(`${API_ENDPOINTS.employees}${id}/`, formData);
+      navigate("/employees", {
+        state: { message: "Employee updated successfully!" },
+      });
+    } catch (error) {
+      console.error("Error updating employee:", error);
+      if (axios.isAxiosError(error) && error.response?.data) {
+        setErrors(error.response.data);
+      } else {
+        setErrors({ general: "Failed to update employee. Please try again." });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancel = () => {
+    navigate("/employees");
+  };
+
+  if (initialLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading employee data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <PencilSquareIcon className="h-8 w-8 text-green-600" />
+            <h1 className="text-3xl font-bold text-gray-900">Edit Employee</h1>
+          </div>
+
+          {errors.general && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-600">{errors.general}</p>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">
+                Employee Information
+              </h3>
+              <p className="text-sm text-gray-600">
+                <strong>Name:</strong> {personName}
+              </p>
+              <p className="text-sm text-gray-600">
+                <strong>SSN:</strong> {formData.ssn}
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="role"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Employee Role *
+              </label>
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleInputChange}
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
+                  errors.role ? "border-red-500" : "border-gray-300"
+                }`}
+              >
+                <option value="">-- Select a role --</option>
+                {ROLE_CHOICES.map((role) => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+              {errors.role && (
+                <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+              )}
+            </div>
+
+            {/* Form Actions */}
+            <div className="flex justify-end space-x-4 pt-6 border-t">
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? "Updating..." : "Update Employee"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EditEmployee;
