@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { API_ENDPOINTS } from "../../config/api";
 import {
   ShieldCheckIcon,
@@ -27,9 +28,14 @@ interface Vaccination {
 }
 
 const VaccinationList: React.FC = () => {
+  const location = useLocation();
   const [vaccinations, setVaccinations] = useState<Vaccination[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [vaccinationToDelete, setVaccinationToDelete] =
+    useState<Vaccination | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -57,6 +63,14 @@ const VaccinationList: React.FC = () => {
 
   useEffect(() => {
     fetchVaccinations();
+
+    // Show success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setTimeout(() => setSuccessMessage(""), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, currentPage]);
 
@@ -98,6 +112,22 @@ const VaccinationList: React.FC = () => {
     }
   };
 
+  const handleDeleteClick = (vaccination: Vaccination) => {
+    setVaccinationToDelete(vaccination);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    fetchVaccinations();
+    setSuccessMessage("Vaccination record deleted successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const handleDeleteCancel = () => {
+    setVaccinationToDelete(null);
+    setDeleteModalOpen(false);
+  };
+
   const getDoseBadgeColor = (dose: number) => {
     if (dose === 1) return "bg-blue-100 text-blue-800";
     if (dose === 2) return "bg-green-100 text-green-800";
@@ -123,6 +153,13 @@ const VaccinationList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -284,9 +321,7 @@ const VaccinationList: React.FC = () => {
                             <PencilIcon className="h-5 w-5" />
                           </Link>
                           <button
-                            onClick={() =>
-                              alert("Delete functionality coming soon")
-                            }
+                            onClick={() => handleDeleteClick(vaccination)}
                             className="text-red-600 hover:text-red-900"
                             title="Delete"
                           >
@@ -327,6 +362,16 @@ const VaccinationList: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        itemName={vaccinationToDelete?.person_name || "this vaccination record"}
+        itemType="vaccination record"
+        deleteEndpoint={`${API_ENDPOINTS.vaccinations}${vaccinationToDelete?.ssn}/`}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
     </div>
   );
 };

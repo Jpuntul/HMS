@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { API_ENDPOINTS } from "../../config/api";
 import {
   ClockIcon,
@@ -28,9 +29,15 @@ interface Schedule {
 }
 
 const ScheduleList: React.FC = () => {
+  const location = useLocation();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [scheduleToDelete, setScheduleToDelete] = useState<Schedule | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [selectedFacility, setSelectedFacility] = useState<string>("");
@@ -61,6 +68,14 @@ const ScheduleList: React.FC = () => {
 
   useEffect(() => {
     fetchSchedules();
+
+    // Show success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setTimeout(() => setSuccessMessage(""), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, selectedRole, selectedFacility, currentPage]);
 
@@ -106,6 +121,22 @@ const ScheduleList: React.FC = () => {
       setError("Failed to fetch schedules");
       setLoading(false);
     }
+  };
+
+  const handleDeleteClick = (schedule: Schedule) => {
+    setScheduleToDelete(schedule);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    fetchSchedules();
+    setSuccessMessage("Schedule deleted successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const handleDeleteCancel = () => {
+    setScheduleToDelete(null);
+    setDeleteModalOpen(false);
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -161,6 +192,13 @@ const ScheduleList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -363,9 +401,7 @@ const ScheduleList: React.FC = () => {
                             <PencilIcon className="h-4 w-4" />
                           </Link>
                           <button
-                            onClick={() =>
-                              alert("Delete functionality coming soon")
-                            }
+                            onClick={() => handleDeleteClick(schedule)}
                             className="text-red-600 hover:text-red-900"
                             title="Delete"
                           >
@@ -470,6 +506,16 @@ const ScheduleList: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        itemName={scheduleToDelete?.employee_name || "this schedule"}
+        itemType="schedule"
+        deleteEndpoint={`${API_ENDPOINTS.schedules}${scheduleToDelete?.essn}/`}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
     </div>
   );
 };

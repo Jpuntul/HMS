@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { API_ENDPOINTS } from "../../config/api";
 import {
   ExclamationTriangleIcon,
@@ -23,9 +24,15 @@ interface Infection {
 }
 
 const InfectionList: React.FC = () => {
+  const location = useLocation();
   const [infections, setInfections] = useState<Infection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [infectionToDelete, setInfectionToDelete] = useState<Infection | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -53,6 +60,14 @@ const InfectionList: React.FC = () => {
 
   useEffect(() => {
     fetchInfections();
+
+    // Show success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setTimeout(() => setSuccessMessage(""), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, currentPage]);
 
@@ -60,6 +75,22 @@ const InfectionList: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm]);
+
+  const handleDeleteClick = (infection: Infection) => {
+    setInfectionToDelete(infection);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    fetchInfections();
+    setSuccessMessage("Infection record deleted successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const handleDeleteCancel = () => {
+    setInfectionToDelete(null);
+    setDeleteModalOpen(false);
+  };
 
   const fetchInfections = async () => {
     try {
@@ -112,6 +143,13 @@ const InfectionList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -245,9 +283,7 @@ const InfectionList: React.FC = () => {
                             <PencilIcon className="h-5 w-5" />
                           </Link>
                           <button
-                            onClick={() =>
-                              alert("Delete functionality coming soon")
-                            }
+                            onClick={() => handleDeleteClick(infection)}
                             className="text-red-600 hover:text-red-900"
                             title="Delete"
                           >
@@ -288,6 +324,16 @@ const InfectionList: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        itemName={infectionToDelete?.person_name || "this infection record"}
+        itemType="infection record"
+        deleteEndpoint={`${API_ENDPOINTS.infections}${infectionToDelete?.ssn}/`}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
     </div>
   );
 };

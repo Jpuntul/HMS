@@ -384,14 +384,18 @@ const PersonList: React.FC = () => {
         )}
 
         {/* Delete Confirmation Modal */}
-        {personToDelete && (
-          <DeleteConfirmationModal
-            person={personToDelete}
-            isOpen={deleteModalOpen}
-            onClose={handleDeleteCancel}
-            onDelete={handleDeleteConfirm}
-          />
-        )}
+        <DeleteConfirmationModal
+          isOpen={deleteModalOpen}
+          itemName={
+            personToDelete
+              ? `${personToDelete.first_name} ${personToDelete.last_name}`
+              : ""
+          }
+          itemType="person"
+          deleteEndpoint={`${API_ENDPOINTS.persons}${personToDelete?.medicare}/`}
+          onClose={handleDeleteCancel}
+          onDelete={handleDeleteConfirm}
+        />
       </div>
     </div>
   );

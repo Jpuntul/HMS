@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import {
@@ -18,6 +18,7 @@ import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import SearchResultsHeader from "../../components/SearchResultsHeader";
 import Pagination from "../../components/Pagination";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { useAuth } from "../../contexts/AuthContext";
 
 interface Facility {
@@ -36,9 +37,15 @@ interface Facility {
 }
 
 const FacilityList: React.FC = () => {
+  const location = useLocation();
   const [facilities, setFacilities] = useState<Facility[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [facilityToDelete, setFacilityToDelete] = useState<Facility | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -67,6 +74,14 @@ const FacilityList: React.FC = () => {
 
   useEffect(() => {
     fetchFacilities();
+
+    // Show success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setTimeout(() => setSuccessMessage(""), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, typeFilter, currentPage]);
 
@@ -144,6 +159,22 @@ const FacilityList: React.FC = () => {
     return colors[type] || "bg-gray-100 text-gray-800";
   };
 
+  const handleDeleteClick = (facility: Facility) => {
+    setFacilityToDelete(facility);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    fetchFacilities();
+    setSuccessMessage("Facility deleted successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const handleDeleteCancel = () => {
+    setFacilityToDelete(null);
+    setDeleteModalOpen(false);
+  };
+
   const totalCapacity = facilities.reduce(
     (sum, facility) => sum + (facility.capacity || 0),
     0,
@@ -168,6 +199,13 @@ const FacilityList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -388,9 +426,7 @@ const FacilityList: React.FC = () => {
                           <span>Edit</span>
                         </Link>
                         <button
-                          onClick={() =>
-                            alert("Delete functionality coming soon")
-                          }
+                          onClick={() => handleDeleteClick(facility)}
                           className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
                         >
                           <TrashIcon className="h-3 w-3" />
@@ -428,6 +464,16 @@ const FacilityList: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        itemName={facilityToDelete?.name || "this facility"}
+        itemType="facility"
+        deleteEndpoint={`${API_ENDPOINTS.facilities}${facilityToDelete?.fid}/`}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
     </div>
   );
 };

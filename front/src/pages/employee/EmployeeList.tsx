@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import Pagination from "../../components/Pagination";
+import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { API_ENDPOINTS } from "../../config/api";
 import {
@@ -43,9 +44,15 @@ interface Employee {
 }
 
 const EmployeeList: React.FC = () => {
+  const location = useLocation();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(
+    null,
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -94,6 +101,14 @@ const EmployeeList: React.FC = () => {
 
   useEffect(() => {
     fetchEmployees();
+
+    // Show success message from navigation state
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      setTimeout(() => setSuccessMessage(""), 5000);
+      // Clear the location state
+      window.history.replaceState({}, document.title);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearchTerm, roleFilter, currentPage]);
 
@@ -101,6 +116,22 @@ const EmployeeList: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [debouncedSearchTerm, roleFilter]);
+
+  const handleDeleteClick = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+    setDeleteModalOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    fetchEmployees();
+    setSuccessMessage("Employee deleted successfully!");
+    setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  const handleDeleteCancel = () => {
+    setEmployeeToDelete(null);
+    setDeleteModalOpen(false);
+  };
 
   const getRoleBadgeColor = (role: string) => {
     const colors: { [key: string]: string } = {
@@ -135,6 +166,13 @@ const EmployeeList: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-600">{successMessage}</p>
+          </div>
+        )}
+
         {/* Header */}
         <div className="bg-white shadow-sm rounded-lg mb-8">
           <div className="px-6 py-4 border-b border-gray-200">
@@ -329,9 +367,7 @@ const EmployeeList: React.FC = () => {
                           <span>Edit</span>
                         </Link>
                         <button
-                          onClick={() =>
-                            alert("Delete functionality coming soon")
-                          }
+                          onClick={() => handleDeleteClick(employee)}
                           className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
                         >
                           <TrashIcon className="h-3 w-3" />
@@ -369,6 +405,16 @@ const EmployeeList: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        itemName={employeeToDelete?.person_name || "this employee"}
+        itemType="employee"
+        deleteEndpoint={`${API_ENDPOINTS.employees}${employeeToDelete?.ssn}/`}
+        onClose={handleDeleteCancel}
+        onDelete={handleDeleteConfirm}
+      />
     </div>
   );
 };

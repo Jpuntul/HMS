@@ -1,25 +1,20 @@
 import { useState } from "react";
 import axios from "axios";
-import { API_ENDPOINTS } from "../config/api";
-
-interface Person {
-  id: number;
-  first_name: string;
-  last_name: string;
-  ssn: string;
-  medicare: string;
-}
 
 interface DeleteConfirmationModalProps {
-  person: Person;
   isOpen: boolean;
+  itemName: string;
+  itemType: string;
+  deleteEndpoint: string;
   onClose: () => void;
   onDelete: () => void;
 }
 
 const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
-  person,
   isOpen,
+  itemName,
+  itemType,
+  deleteEndpoint,
   onClose,
   onDelete,
 }) => {
@@ -31,12 +26,12 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
     setError("");
 
     try {
-      await axios.delete(`${API_ENDPOINTS.persons}${person.id}/`);
+      await axios.delete(deleteEndpoint);
       onDelete();
       onClose();
     } catch (error) {
-      console.error("Error deleting person:", error);
-      setError("Failed to delete person. Please try again.");
+      console.error(`Error deleting ${itemType}:`, error);
+      setError(`Failed to delete ${itemType}. Please try again.`);
     } finally {
       setDeleting(false);
     }
@@ -69,15 +64,12 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
             </svg>
           </div>
           <h3 className="text-lg leading-6 font-medium text-gray-900 mt-4">
-            Delete Person
+            Delete {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
           </h3>
           <div className="mt-2 px-7 py-3">
             <p className="text-sm text-gray-500">
               Are you sure you want to delete{" "}
-              <span className="font-semibold">
-                {person.first_name} {person.last_name}
-              </span>
-              ?
+              <span className="font-semibold">{itemName}</span>?
             </p>
             <p className="text-sm text-gray-500 mt-2">
               This action cannot be undone.
