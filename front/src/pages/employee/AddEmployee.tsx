@@ -97,7 +97,15 @@ const AddEmployee: React.FC = () => {
     } catch (error) {
       console.error("Error adding employee:", error);
       if (axios.isAxiosError(error) && error.response?.data) {
-        setErrors(error.response.data);
+        const errorData = error.response.data;
+        // Handle different error formats from backend
+        if (errorData.detail) {
+          setErrors({ general: errorData.detail });
+        } else if (errorData.non_field_errors) {
+          setErrors({ general: errorData.non_field_errors[0] });
+        } else {
+          setErrors(errorData);
+        }
       } else {
         setErrors({ general: "Failed to add employee. Please try again." });
       }
