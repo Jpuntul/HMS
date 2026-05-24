@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.decorators import api_view
@@ -32,6 +32,25 @@ from .serializers import (
 )
 
 
+class CompositeLookupMixin:
+    """For detail views on tables with a CompositePrimaryKey.
+
+    `composite_lookup_map` maps URL kwarg names to ORM filter expressions.
+    """
+
+    composite_lookup_map: dict[str, str] = {}
+
+    def get_object(self):
+        queryset = self.filter_queryset(self.get_queryset())
+        lookup = {
+            orm_key: self.kwargs[url_kwarg]
+            for url_kwarg, orm_key in self.composite_lookup_map.items()
+        }
+        obj = get_object_or_404(queryset, **lookup)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
+
 class PersonListCreateView(generics.ListCreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
@@ -58,48 +77,30 @@ class PersonDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
+    search_fields = [
+        "person__ssn",
+        "person__first_name",
+        "person__last_name",
+        "person__email",
+        "role",
+    ]
     filterset_fields = ["role"]
-    ordering_fields = ["ssn", "role"]
-    ordering = ["ssn"]
-
-    def get_queryset(self):
-        queryset = Employee.objects.all()
-        search = self.request.query_params.get("search", None)
-        if search:
-            # Search in related person data
-            queryset = queryset.filter(
-                Q(ssn__icontains=search) | Q(role__icontains=search)
-            )
-            # Also search in related person fields
-            try:
-                person_queryset = Person.objects.filter(
-                    Q(first_name__icontains=search)
-                    | Q(last_name__icontains=search)
-                    | Q(email__icontains=search)
-                )
-                person_ssns = person_queryset.values_list("ssn", flat=True)
-                queryset = queryset.filter(
-                    Q(ssn__in=person_ssns)
-                    | Q(ssn__icontains=search)
-                    | Q(role__icontains=search)
-                )
-            except Exception:
-                pass
-        return queryset
+    ordering_fields = ["person", "role"]
+    ordering = ["person"]
 
 
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Employee.objects.all()
+    queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class FacilityListCreateView(generics.ListCreateAPIView):
-    queryset = Facility.objects.all()
+    queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
@@ -110,12 +111,11 @@ class FacilityListCreateView(generics.ListCreateAPIView):
 
 
 class FacilityDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Facility.objects.all()
+    queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-# Residence Views
 class ResidenceListCreateView(generics.ListCreateAPIView):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
@@ -133,7 +133,6 @@ class ResidenceDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-# Infection Type Views
 class InfectionTypeListCreateView(generics.ListCreateAPIView):
     queryset = InfectionType.objects.all()
     serializer_class = InfectionTypeSerializer
@@ -149,24 +148,27 @@ class InfectionTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-# Infection Views
 class InfectionListCreateView(generics.ListCreateAPIView):
-    queryset = Infection.objects.all()
+    queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["ssn", "type_id", "date"]
-    ordering_fields = ["date", "ssn"]
+    filterset_fields = ["person", "infection_type", "date"]
+    ordering_fields = ["date", "person"]
     ordering = ["-date"]
 
 
-class InfectionDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Infection.objects.all()
+class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    composite_lookup_map = {
+        "ssn": "person_id",
+        "date": "date",
+        "type_id": "infection_type_id",
+    }
 
 
-# Vaccine Type Views
 class VaccineTypeListCreateView(generics.ListCreateAPIView):
     queryset = VaccineType.objects.all()
     serializer_class = VaccineTypeSerializer
@@ -182,61 +184,78 @@ class VaccineTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 
-# Vaccination Views
 class VaccinationListCreateView(generics.ListCreateAPIView):
-    queryset = Vaccination.objects.all()
+    queryset = Vaccination.objects.select_related(
+        "person", "vaccine_type", "facility"
+    ).all()
     serializer_class = VaccinationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["ssn", "type_id", "fid", "no_of_dose"]
-    ordering_fields = ["date", "ssn"]
+    filterset_fields = ["person", "vaccine_type", "facility", "no_of_dose"]
+    ordering_fields = ["date", "person"]
     ordering = ["-date"]
 
 
-class VaccinationDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Vaccination.objects.all()
+class VaccinationDetailView(
+    CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    queryset = Vaccination.objects.select_related(
+        "person", "vaccine_type", "facility"
+    ).all()
     serializer_class = VaccinationSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    composite_lookup_map = {
+        "ssn": "person_id",
+        "type_id": "vaccine_type_id",
+        "date": "date",
+    }
 
 
-# Employment Views
 class EmploymentListCreateView(generics.ListCreateAPIView):
-    queryset = Employment.objects.all()
+    queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["essn", "fid"]
+    filterset_fields = ["employee", "facility"]
     ordering_fields = ["start_date", "end_date"]
     ordering = ["-start_date"]
 
 
-class EmploymentDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Employment.objects.all()
+class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    composite_lookup_map = {
+        "essn": "employee_id",
+        "fid": "facility_id",
+        "start_date": "start_date",
+    }
 
 
-# Schedule Views
 class ScheduleListCreateView(generics.ListCreateAPIView):
-    queryset = Schedule.objects.all()
+    queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
-    filterset_fields = ["essn", "fid", "date"]
+    filterset_fields = ["employee", "facility", "date"]
     ordering_fields = ["date", "start_time"]
     ordering = ["date", "start_time"]
 
 
-class ScheduleDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Schedule.objects.all()
+class ScheduleDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+    queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    composite_lookup_map = {
+        "essn": "employee_id",
+        "fid": "facility_id",
+        "date": "date",
+        "start_time": "start_time",
+    }
 
 
-# Filter Options Views
 @api_view(["GET"])
 def person_filter_options(request):
-    """Get unique values for person filters"""
     citizenships = (
         Person.objects.exclude(citizenship__isnull=True)
         .exclude(citizenship="")
@@ -244,7 +263,6 @@ def person_filter_options(request):
         .distinct()
         .order_by("citizenship")
     )
-
     occupations = (
         Person.objects.exclude(occupation__isnull=True)
         .exclude(occupation="")
@@ -252,7 +270,6 @@ def person_filter_options(request):
         .distinct()
         .order_by("occupation")
     )
-
     return Response(
         {"citizenships": list(citizenships), "occupations": list(occupations)}
     )
@@ -260,7 +277,6 @@ def person_filter_options(request):
 
 @api_view(["GET"])
 def employee_filter_options(request):
-    """Get unique values for employee filters"""
     roles = (
         Employee.objects.exclude(role__isnull=True)
         .exclude(role="")
@@ -268,5 +284,4 @@ def employee_filter_options(request):
         .distinct()
         .order_by("role")
     )
-
     return Response({"roles": list(roles)})

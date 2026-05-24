@@ -86,12 +86,14 @@ urlpatterns = [
         InfectionTypeDetailView.as_view(),
         name="infection-type-detail",
     ),
-    # Infection endpoints
+    # Infection endpoints (composite PK: ssn + date + type_id)
     path(
         "infections/", InfectionListCreateView.as_view(), name="infection-list-create"
     ),
     path(
-        "infections/<int:pk>/", InfectionDetailView.as_view(), name="infection-detail"
+        "infections/<int:ssn>/<str:date>/<int:type_id>/",
+        InfectionDetailView.as_view(),
+        name="infection-detail",
     ),
     # Vaccine Type endpoints
     path(
@@ -104,29 +106,33 @@ urlpatterns = [
         VaccineTypeDetailView.as_view(),
         name="vaccine-type-detail",
     ),
-    # Vaccination endpoints
+    # Vaccination endpoints (composite PK: ssn + type_id + date)
     path(
         "vaccinations/",
         VaccinationListCreateView.as_view(),
         name="vaccination-list-create",
     ),
     path(
-        "vaccinations/<int:pk>/",
+        "vaccinations/<int:ssn>/<int:type_id>/<str:date>/",
         VaccinationDetailView.as_view(),
         name="vaccination-detail",
     ),
-    # Employment endpoints
+    # Employment endpoints (composite PK: essn + fid + start_date)
     path(
         "employments/",
         EmploymentListCreateView.as_view(),
         name="employment-list-create",
     ),
     path(
-        "employments/<int:pk>/",
+        "employments/<int:essn>/<int:fid>/<str:start_date>/",
         EmploymentDetailView.as_view(),
         name="employment-detail",
     ),
-    # Schedule endpoints
+    # Schedule endpoints (composite PK: essn + fid + date + start_time)
     path("schedules/", ScheduleListCreateView.as_view(), name="schedule-list-create"),
-    path("schedules/<int:pk>/", ScheduleDetailView.as_view(), name="schedule-detail"),
+    path(
+        "schedules/<int:essn>/<int:fid>/<str:date>/<str:start_time>/",
+        ScheduleDetailView.as_view(),
+        name="schedule-detail",
+    ),
 ]
