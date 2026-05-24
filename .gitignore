@@ -84,6 +84,9 @@ jspm_packages/
 .env.test.local
 .env.production.local
 
+# Local-only notes / refactor records (not for GitHub)
+notes/
+
 # Build outputs
 /front/build/
 /frontend/build/

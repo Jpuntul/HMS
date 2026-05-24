@@ -8,7 +8,7 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 
 - **Hybrid Authentication**: Browse all data without login, authenticate only for CRUD operations
 - **Admin-Only Registration**: Staff registration restricted to administrators for security
-- **Token-Based Auth**: Secure JWT authentication with Django REST Framework
+- **Token-Based Auth**: DRF `TokenAuthentication` (opaque tokens) for the API
 - **CSRF Protection**: Configured for cross-origin requests with trusted origins
 
 ### 📊 Healthcare Management
@@ -34,12 +34,12 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 
 ### Backend
 
-- **Django 4.2.25** - Web framework
+- **Django 5.2** - Web framework (uses `models.CompositePrimaryKey` for the join tables)
 - **Django REST Framework** - RESTful API
 - **MySQL** - Production database
 - **SQLite** - Development database option
 - **python-dotenv** - Environment variable management
-- **Token Authentication** - Secure API access
+- **Token Authentication** - DRF opaque tokens
 
 ### Frontend
 
@@ -117,19 +117,6 @@ npm run dev
 - **Admin Panel**: http://localhost:8001/admin (requires superuser)
 
 > **🔒 Security Note**: Registration is **admin-only**. Create admin account with `python manage.py createsuperuser`, then use "Register User" button in the app (visible only to staff).
-
-## 📚 Documentation
-
-Comprehensive guides for setup, development, and contribution:
-
-| Document                                              | Description                                                      |
-| ----------------------------------------------------- | ---------------------------------------------------------------- |
-| **[📖 Setup Guide](docs/SETUP_GUIDE.md)**             | Complete installation with MySQL/SQLite, Docker, troubleshooting |
-| **[⚙️ Environment Setup](docs/ENVIRONMENT_SETUP.md)** | `.env` configuration, API endpoints, migration checklist         |
-| **[🔌 API Documentation](docs/API_DOCUMENTATION.md)** | Full REST API reference with examples                            |
-| **[🤝 Contributing Guide](docs/CONTRIBUTING.md)**     | Development workflow, pre-commit hooks, code standards           |
-| **[🗃️ Database Schema](docs/DATABASE_SCHEMA.md)**     | Complete database structure and relationships                    |
-| **[🪝 Pre-commit Hooks](docs/PRE_COMMIT_HOOKS.md)**   | Quality checks configuration (13 hooks)                          |
 
 ## 🎯 How It Works
 
@@ -215,7 +202,7 @@ Automatic code quality enforcement on every commit:
 
 - **Centralized Config**: All endpoints in `front/src/config/api.ts`
 - **No Hardcoded URLs**: Environment-based configuration throughout
-- **Token Authentication**: Secure JWT tokens for authenticated requests
+- **Token Authentication**: DRF opaque tokens for authenticated requests
 
 ## 🤝 Contributing
 
@@ -230,7 +217,7 @@ We welcome contributions! Please follow these steps:
 7. **Push**: `git push origin feature/amazing-feature`
 8. **Open** a Pull Request
 
-See **[CONTRIBUTING.md](docs/CONTRIBUTING.md)** for detailed guidelines.
+Pre-commit hooks are configured in [.pre-commit-config.yaml](.pre-commit-config.yaml) — run `pre-commit install` in `back/` once after cloning.
 
 ## 📝 License
 
