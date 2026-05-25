@@ -5,10 +5,12 @@ export const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export const API_ENDPOINTS = {
-  // Auth
+  // Auth (JWT)
   login: `${API_BASE_URL}/api/auth/login/`,
+  refresh: `${API_BASE_URL}/api/auth/refresh/`,
   logout: `${API_BASE_URL}/api/auth/logout/`,
   register: `${API_BASE_URL}/api/auth/register/`,
+  profile: `${API_BASE_URL}/api/auth/profile/`,
 
   // Persons
   persons: `${API_BASE_URL}/api/persons/`,

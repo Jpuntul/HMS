@@ -397,151 +397,71 @@ function App() {
 
           <main>
             <Routes>
-              {/* Public routes */}
+              {/* Public route */}
               <Route path="/login" element={<Login />} />
 
-              {/* Publicly accessible viewing routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+              {/* Everything else requires authentication. ProtectedRoute as a
+                  layout route redirects unauthenticated users to /login. */}
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/dashboard" element={<Dashboard />} />
 
-              {/* Person routes */}
-              <Route path="/persons" element={<PersonList />} />
-              <Route path="/persons/:id" element={<PersonDetail />} />
-              <Route
-                path="/persons/add"
-                element={
-                  <ProtectedRoute>
-                    <AddPerson />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/persons/:id/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditPerson />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Person */}
+                <Route path="/persons" element={<PersonList />} />
+                <Route path="/persons/add" element={<AddPerson />} />
+                <Route path="/persons/:id" element={<PersonDetail />} />
+                <Route path="/persons/:id/edit" element={<EditPerson />} />
 
-              {/* Employee routes */}
-              <Route path="/employees" element={<EmployeeList />} />
-              <Route path="/employees/:id" element={<EmployeeDetail />} />
-              <Route
-                path="/employees/add"
-                element={
-                  <ProtectedRoute>
-                    <AddEmployee />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/employees/:id/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditEmployee />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Employee */}
+                <Route path="/employees" element={<EmployeeList />} />
+                <Route path="/employees/add" element={<AddEmployee />} />
+                <Route path="/employees/:id" element={<EmployeeDetail />} />
+                <Route path="/employees/:id/edit" element={<EditEmployee />} />
 
-              {/* Facility routes */}
-              <Route path="/facilities" element={<FacilityList />} />
-              <Route path="/facilities/:id" element={<FacilityDetail />} />
-              <Route
-                path="/facilities/add"
-                element={
-                  <ProtectedRoute>
-                    <AddFacility />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/facilities/:id/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditFacility />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Facility */}
+                <Route path="/facilities" element={<FacilityList />} />
+                <Route path="/facilities/add" element={<AddFacility />} />
+                <Route path="/facilities/:id" element={<FacilityDetail />} />
+                <Route path="/facilities/:id/edit" element={<EditFacility />} />
 
-              {/* Infection routes (composite PK: ssn + date + type_id) */}
-              <Route path="/infections" element={<InfectionList />} />
-              <Route
-                path="/infections/add"
-                element={
-                  <ProtectedRoute>
-                    <AddInfection />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/infections/:ssn/:date/:type_id"
-                element={<InfectionDetail />}
-              />
-              <Route
-                path="/infections/:ssn/:date/:type_id/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditInfection />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Infection (composite PK: ssn + date + type_id) */}
+                <Route path="/infections" element={<InfectionList />} />
+                <Route path="/infections/add" element={<AddInfection />} />
+                <Route
+                  path="/infections/:ssn/:date/:type_id"
+                  element={<InfectionDetail />}
+                />
+                <Route
+                  path="/infections/:ssn/:date/:type_id/edit"
+                  element={<EditInfection />}
+                />
 
-              {/* Vaccination routes (composite PK: ssn + type_id + date) */}
-              <Route path="/vaccinations" element={<VaccinationList />} />
-              <Route
-                path="/vaccinations/add"
-                element={
-                  <ProtectedRoute>
-                    <AddVaccination />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/vaccinations/:ssn/:type_id/:date"
-                element={<VaccinationDetail />}
-              />
-              <Route
-                path="/vaccinations/:ssn/:type_id/:date/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditVaccination />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Vaccination (composite PK: ssn + type_id + date) */}
+                <Route path="/vaccinations" element={<VaccinationList />} />
+                <Route path="/vaccinations/add" element={<AddVaccination />} />
+                <Route
+                  path="/vaccinations/:ssn/:type_id/:date"
+                  element={<VaccinationDetail />}
+                />
+                <Route
+                  path="/vaccinations/:ssn/:type_id/:date/edit"
+                  element={<EditVaccination />}
+                />
 
-              {/* Schedule routes (composite PK: essn + fid + date + start_time) */}
-              <Route path="/schedules" element={<ScheduleList />} />
-              <Route
-                path="/schedules/add"
-                element={
-                  <ProtectedRoute>
-                    <AddSchedule />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/schedules/:essn/:fid/:date/:start_time"
-                element={<ScheduleDetail />}
-              />
-              <Route
-                path="/schedules/:essn/:fid/:date/:start_time/edit"
-                element={
-                  <ProtectedRoute>
-                    <EditSchedule />
-                  </ProtectedRoute>
-                }
-              />
+                {/* Schedule (composite PK: essn + fid + date + start_time) */}
+                <Route path="/schedules" element={<ScheduleList />} />
+                <Route path="/schedules/add" element={<AddSchedule />} />
+                <Route
+                  path="/schedules/:essn/:fid/:date/:start_time"
+                  element={<ScheduleDetail />}
+                />
+                <Route
+                  path="/schedules/:essn/:fid/:date/:start_time/edit"
+                  element={<EditSchedule />}
+                />
 
-              {/* Protected admin routes */}
-              <Route
-                path="/register"
-                element={
-                  <ProtectedRoute>
-                    <Register />
-                  </ProtectedRoute>
-                }
-              />
+                <Route path="/register" element={<Register />} />
+              </Route>
             </Routes>
           </main>
         </div>
