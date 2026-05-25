@@ -1,6 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.db.models.functions import Extract
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -73,37 +73,33 @@ def dashboard_stats(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def facility_analytics(request):
-    """Get detailed facility analytics"""
+    """Get detailed facility analytics.
 
-    facilities_with_stats = []
+    Employee count per facility is derived from the Employments table: a row
+    counts as 'current' when end_date is NULL or in the future. Distinct on
+    employee to avoid double-counting rows with multiple start_dates.
+    """
+    today = date.today()
+    current = Q(employments__end_date__isnull=True) | Q(employments__end_date__gt=today)
+    facilities = Facility.objects.annotate(
+        employee_count=Count("employments__employee", filter=current, distinct=True),
+    )
 
-    for facility in Facility.objects.all():
-        # Simplified employee count (just use a basic calculation for now)
-        # Since we don't have direct facility-employee relationship, we'll estimate
-        total_employees = Employee.objects.count()
-        total_facilities = Facility.objects.count()
-        estimated_employee_count = max(1, total_employees // total_facilities)
+    facilities_with_stats = [
+        {
+            "name": f.name,
+            "type": f.type,
+            "capacity": f.capacity or 0,
+            "employee_count": f.employee_count,
+            "occupancy_rate": (
+                min((f.employee_count / f.capacity) * 100, 100) if f.capacity else 0
+            ),
+            "city": f.city,
+            "province": f.province,
+        }
+        for f in facilities
+    ]
 
-        facilities_with_stats.append(
-            {
-                "name": facility.name,
-                "type": facility.type,
-                "capacity": facility.capacity or 0,
-                "employee_count": estimated_employee_count,
-                "occupancy_rate": min(
-                    (
-                        (estimated_employee_count / facility.capacity * 100)
-                        if facility.capacity
-                        else 0
-                    ),
-                    100,
-                ),
-                "city": facility.city,
-                "province": facility.province,
-            }
-        )
-
-    # Sort by capacity
     facilities_with_stats.sort(key=lambda x: x["capacity"], reverse=True)
 
     return Response(
