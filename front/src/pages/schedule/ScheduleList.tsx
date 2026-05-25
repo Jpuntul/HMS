@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ClockIcon,
   PlusIcon,
@@ -390,7 +390,12 @@ const ScheduleList: React.FC = () => {
                     </div>
                     <div className="flex space-x-2">
                       <Link
-                        to={`/schedules/${schedule.essn}`}
+                        to={ROUTES.scheduleDetail(
+                          schedule.essn,
+                          schedule.fid,
+                          schedule.date,
+                          schedule.start_time,
+                        )}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
@@ -399,7 +404,12 @@ const ScheduleList: React.FC = () => {
                       {user && (
                         <>
                           <Link
-                            to={`/schedules/${schedule.essn}/edit`}
+                            to={ROUTES.scheduleEdit(
+                              schedule.essn,
+                              schedule.fid,
+                              schedule.date,
+                              schedule.start_time,
+                            )}
                             className="text-green-600 hover:text-green-900"
                             title="Edit"
                           >
@@ -517,7 +527,16 @@ const ScheduleList: React.FC = () => {
         isOpen={deleteModalOpen}
         itemName={scheduleToDelete?.employee_name || "this schedule"}
         itemType="schedule"
-        deleteEndpoint={`${API_ENDPOINTS.schedules}${scheduleToDelete?.essn}/`}
+        deleteEndpoint={
+          scheduleToDelete
+            ? API_ENDPOINTS.scheduleDetail(
+                scheduleToDelete.essn,
+                scheduleToDelete.fid,
+                scheduleToDelete.date,
+                scheduleToDelete.start_time,
+              )
+            : ""
+        }
         onClose={handleDeleteCancel}
         onDelete={handleDeleteConfirm}
       />

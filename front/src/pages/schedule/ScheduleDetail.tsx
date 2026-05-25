@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   CalendarIcon,
   PencilSquareIcon,
@@ -21,7 +21,12 @@ interface ScheduleData {
 }
 
 const ScheduleDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { essn, fid, date, start_time } = useParams<{
+    essn: string;
+    fid: string;
+    date: string;
+    start_time: string;
+  }>();
   const navigate = useNavigate();
   const [schedule, setSchedule] = useState<ScheduleData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,13 +34,15 @@ const ScheduleDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchSchedule = async () => {
-      if (!id) {
+      if (!essn || !fid || !date || !start_time) {
         navigate("/schedules");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.schedules}${id}/`);
+        const response = await axios.get(
+          API_ENDPOINTS.scheduleDetail(essn, fid, date, start_time),
+        );
         setSchedule(response.data);
       } catch (error) {
         console.error("Error fetching schedule:", error);
@@ -46,7 +53,7 @@ const ScheduleDetail: React.FC = () => {
     };
 
     fetchSchedule();
-  }, [id, navigate]);
+  }, [essn, fid, date, start_time, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -124,11 +131,15 @@ const ScheduleDetail: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900">
                   Work Schedule Details
                 </h1>
-                <p className="text-gray-500">Schedule ID: {id}</p>
+                <p className="text-gray-500">
+                  {schedule.employee_name} · {schedule.facility_name} ·{" "}
+                  {formatDate(schedule.date)} at{" "}
+                  {schedule.start_time.slice(0, 5)}
+                </p>
               </div>
             </div>
             <Link
-              to={`/schedules/${id}/edit`}
+              to={ROUTES.scheduleEdit(essn!, fid!, date!, start_time!)}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

@@ -21,16 +21,32 @@ export const API_ENDPOINTS = {
   // Facilities
   facilities: `${API_BASE_URL}/api/facilities/`,
 
-  // Infections
+  // Infections (composite PK: ssn + date + type_id)
   infections: `${API_BASE_URL}/api/infections/`,
   infectionTypes: `${API_BASE_URL}/api/infection-types/`,
+  infectionDetail: (
+    ssn: number | string,
+    date: string,
+    typeId: number | string,
+  ) => `${API_BASE_URL}/api/infections/${ssn}/${date}/${typeId}/`,
 
-  // Vaccinations
+  // Vaccinations (composite PK: ssn + type_id + date)
   vaccinations: `${API_BASE_URL}/api/vaccinations/`,
   vaccineTypes: `${API_BASE_URL}/api/vaccine-types/`,
+  vaccinationDetail: (
+    ssn: number | string,
+    typeId: number | string,
+    date: string,
+  ) => `${API_BASE_URL}/api/vaccinations/${ssn}/${typeId}/${date}/`,
 
-  // Schedules
+  // Schedules (composite PK: essn + fid + date + start_time)
   schedules: `${API_BASE_URL}/api/schedules/`,
+  scheduleDetail: (
+    essn: number | string,
+    fid: number | string,
+    date: string,
+    startTime: string,
+  ) => `${API_BASE_URL}/api/schedules/${essn}/${fid}/${date}/${startTime}/`,
 
   // Analytics
   analytics: {
@@ -38,4 +54,43 @@ export const API_ENDPOINTS = {
     demographics: `${API_BASE_URL}/api/analytics/demographics/`,
     facilities: `${API_BASE_URL}/api/analytics/facilities/`,
   },
+};
+
+// Frontend route builders — must mirror the backend composite-PK URL shape so
+// React Router params line up with the API path segments.
+export const ROUTES = {
+  infectionDetail: (
+    ssn: number | string,
+    date: string,
+    typeId: number | string,
+  ) => `/infections/${ssn}/${date}/${typeId}`,
+  infectionEdit: (
+    ssn: number | string,
+    date: string,
+    typeId: number | string,
+  ) => `/infections/${ssn}/${date}/${typeId}/edit`,
+
+  vaccinationDetail: (
+    ssn: number | string,
+    typeId: number | string,
+    date: string,
+  ) => `/vaccinations/${ssn}/${typeId}/${date}`,
+  vaccinationEdit: (
+    ssn: number | string,
+    typeId: number | string,
+    date: string,
+  ) => `/vaccinations/${ssn}/${typeId}/${date}/edit`,
+
+  scheduleDetail: (
+    essn: number | string,
+    fid: number | string,
+    date: string,
+    startTime: string,
+  ) => `/schedules/${essn}/${fid}/${date}/${startTime}`,
+  scheduleEdit: (
+    essn: number | string,
+    fid: number | string,
+    date: string,
+    startTime: string,
+  ) => `/schedules/${essn}/${fid}/${date}/${startTime}/edit`,
 };

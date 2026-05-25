@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ShieldCheckIcon,
   PencilSquareIcon,
@@ -20,7 +20,11 @@ interface VaccinationData {
 }
 
 const VaccinationDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { ssn, type_id, date } = useParams<{
+    ssn: string;
+    type_id: string;
+    date: string;
+  }>();
   const navigate = useNavigate();
   const [vaccination, setVaccination] = useState<VaccinationData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,13 +32,15 @@ const VaccinationDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchVaccination = async () => {
-      if (!id) {
+      if (!ssn || !type_id || !date) {
         navigate("/vaccinations");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.vaccinations}${id}/`);
+        const response = await axios.get(
+          API_ENDPOINTS.vaccinationDetail(ssn, type_id, date),
+        );
         setVaccination(response.data);
       } catch (error) {
         console.error("Error fetching vaccination:", error);
@@ -45,7 +51,7 @@ const VaccinationDetail: React.FC = () => {
     };
 
     fetchVaccination();
-  }, [id, navigate]);
+  }, [ssn, type_id, date, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -103,11 +109,14 @@ const VaccinationDetail: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900">
                   Vaccination Record Details
                 </h1>
-                <p className="text-gray-500">Record ID: {id}</p>
+                <p className="text-gray-500">
+                  SSN {vaccination.ssn} · {vaccination.vaccine_type_name} ·{" "}
+                  {formatDate(vaccination.date)}
+                </p>
               </div>
             </div>
             <Link
-              to={`/vaccinations/${id}/edit`}
+              to={ROUTES.vaccinationEdit(ssn!, type_id!, date!)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ExclamationTriangleIcon,
   PencilSquareIcon,
@@ -17,7 +17,11 @@ interface InfectionData {
 }
 
 const InfectionDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { ssn, date, type_id } = useParams<{
+    ssn: string;
+    date: string;
+    type_id: string;
+  }>();
   const navigate = useNavigate();
   const [infection, setInfection] = useState<InfectionData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,13 +29,15 @@ const InfectionDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchInfection = async () => {
-      if (!id) {
+      if (!ssn || !date || !type_id) {
         navigate("/infections");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.infections}${id}/`);
+        const response = await axios.get(
+          API_ENDPOINTS.infectionDetail(ssn, date, type_id),
+        );
         setInfection(response.data);
       } catch (error) {
         console.error("Error fetching infection:", error);
@@ -42,7 +48,7 @@ const InfectionDetail: React.FC = () => {
     };
 
     fetchInfection();
-  }, [id, navigate]);
+  }, [ssn, date, type_id, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -97,11 +103,14 @@ const InfectionDetail: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900">
                   Infection Record Details
                 </h1>
-                <p className="text-gray-500">Record ID: {id}</p>
+                <p className="text-gray-500">
+                  SSN {infection.ssn} · {infection.infection_type_name} ·{" "}
+                  {formatDate(infection.date)}
+                </p>
               </div>
             </div>
             <Link
-              to={`/infections/${id}/edit`}
+              to={ROUTES.infectionEdit(ssn!, date!, type_id!)}
               className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

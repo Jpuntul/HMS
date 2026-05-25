@@ -19,7 +19,11 @@ interface InfectionFormData {
 
 const EditInfection: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { ssn, date, type_id } = useParams<{
+    ssn: string;
+    date: string;
+    type_id: string;
+  }>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [typesLoading, setTypesLoading] = useState(true);
@@ -35,14 +39,14 @@ const EditInfection: React.FC = () => {
   // Load infection data and types when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) {
+      if (!ssn || !date || !type_id) {
         navigate("/infections");
         return;
       }
 
       try {
         const [infectionResponse, typesResponse] = await Promise.all([
-          axios.get(`${API_ENDPOINTS.infections}${id}/`),
+          axios.get(API_ENDPOINTS.infectionDetail(ssn, date, type_id)),
           axios.get(API_ENDPOINTS.infectionTypes),
         ]);
         setFormData(infectionResponse.data);
@@ -58,7 +62,7 @@ const EditInfection: React.FC = () => {
     };
 
     fetchData();
-  }, [id, navigate]);
+  }, [ssn, date, type_id, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -95,7 +99,7 @@ const EditInfection: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_ENDPOINTS.infections}${id}/`, {
+      await axios.put(API_ENDPOINTS.infectionDetail(ssn!, date!, type_id!), {
         ssn: formData.ssn,
         date: formData.date,
         type_id: formData.type_id,

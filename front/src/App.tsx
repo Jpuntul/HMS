@@ -464,9 +464,8 @@ function App() {
                 }
               />
 
-              {/* Infection routes */}
+              {/* Infection routes (composite PK: ssn + date + type_id) */}
               <Route path="/infections" element={<InfectionList />} />
-              <Route path="/infections/:id" element={<InfectionDetail />} />
               <Route
                 path="/infections/add"
                 element={
@@ -476,7 +475,11 @@ function App() {
                 }
               />
               <Route
-                path="/infections/:id/edit"
+                path="/infections/:ssn/:date/:type_id"
+                element={<InfectionDetail />}
+              />
+              <Route
+                path="/infections/:ssn/:date/:type_id/edit"
                 element={
                   <ProtectedRoute>
                     <EditInfection />
@@ -484,9 +487,8 @@ function App() {
                 }
               />
 
-              {/* Vaccination routes */}
+              {/* Vaccination routes (composite PK: ssn + type_id + date) */}
               <Route path="/vaccinations" element={<VaccinationList />} />
-              <Route path="/vaccinations/:id" element={<VaccinationDetail />} />
               <Route
                 path="/vaccinations/add"
                 element={
@@ -496,7 +498,11 @@ function App() {
                 }
               />
               <Route
-                path="/vaccinations/:id/edit"
+                path="/vaccinations/:ssn/:type_id/:date"
+                element={<VaccinationDetail />}
+              />
+              <Route
+                path="/vaccinations/:ssn/:type_id/:date/edit"
                 element={
                   <ProtectedRoute>
                     <EditVaccination />
@@ -504,9 +510,8 @@ function App() {
                 }
               />
 
-              {/* Schedule routes */}
+              {/* Schedule routes (composite PK: essn + fid + date + start_time) */}
               <Route path="/schedules" element={<ScheduleList />} />
-              <Route path="/schedules/:id" element={<ScheduleDetail />} />
               <Route
                 path="/schedules/add"
                 element={
@@ -516,7 +521,11 @@ function App() {
                 }
               />
               <Route
-                path="/schedules/:id/edit"
+                path="/schedules/:essn/:fid/:date/:start_time"
+                element={<ScheduleDetail />}
+              />
+              <Route
+                path="/schedules/:essn/:fid/:date/:start_time/edit"
                 element={
                   <ProtectedRoute>
                     <EditSchedule />

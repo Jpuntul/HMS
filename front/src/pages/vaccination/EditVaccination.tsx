@@ -29,7 +29,11 @@ interface VaccinationFormData {
 
 const EditVaccination: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { ssn, type_id, date } = useParams<{
+    ssn: string;
+    type_id: string;
+    date: string;
+  }>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [typesLoading, setTypesLoading] = useState(true);
@@ -49,7 +53,7 @@ const EditVaccination: React.FC = () => {
   // Load vaccination data, types, and facilities when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) {
+      if (!ssn || !type_id || !date) {
         navigate("/vaccinations");
         return;
       }
@@ -57,7 +61,7 @@ const EditVaccination: React.FC = () => {
       try {
         const [vaccinationResponse, typesResponse, facilitiesResponse] =
           await Promise.all([
-            axios.get(`${API_ENDPOINTS.vaccinations}${id}/`),
+            axios.get(API_ENDPOINTS.vaccinationDetail(ssn, type_id, date)),
             axios.get(API_ENDPOINTS.vaccineTypes),
             axios.get(API_ENDPOINTS.facilities),
           ]);
@@ -78,7 +82,7 @@ const EditVaccination: React.FC = () => {
     };
 
     fetchData();
-  }, [id, navigate]);
+  }, [ssn, type_id, date, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -124,7 +128,7 @@ const EditVaccination: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_ENDPOINTS.vaccinations}${id}/`, {
+      await axios.put(API_ENDPOINTS.vaccinationDetail(ssn!, type_id!, date!), {
         ssn: formData.ssn,
         type_id: formData.type_id,
         date: formData.date,

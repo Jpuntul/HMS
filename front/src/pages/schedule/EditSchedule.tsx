@@ -24,7 +24,12 @@ interface ScheduleFormData {
 
 const EditSchedule: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { essn, fid, date, start_time } = useParams<{
+    essn: string;
+    fid: string;
+    date: string;
+    start_time: string;
+  }>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [facilitiesLoading, setFacilitiesLoading] = useState(true);
@@ -43,14 +48,14 @@ const EditSchedule: React.FC = () => {
   // Load schedule data and facilities when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!id) {
+      if (!essn || !fid || !date || !start_time) {
         navigate("/schedules");
         return;
       }
 
       try {
         const [scheduleResponse, facilitiesResponse] = await Promise.all([
-          axios.get(`${API_ENDPOINTS.schedules}${id}/`),
+          axios.get(API_ENDPOINTS.scheduleDetail(essn, fid, date, start_time)),
           axios.get(API_ENDPOINTS.facilities),
         ]);
         setFormData(scheduleResponse.data);
@@ -69,7 +74,7 @@ const EditSchedule: React.FC = () => {
     };
 
     fetchData();
-  }, [id, navigate]);
+  }, [essn, fid, date, start_time, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -114,13 +119,16 @@ const EditSchedule: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_ENDPOINTS.schedules}${id}/`, {
-        essn: formData.essn,
-        fid: formData.fid,
-        date: formData.date,
-        start_time: formData.start_time,
-        end_time: formData.end_time,
-      });
+      await axios.put(
+        API_ENDPOINTS.scheduleDetail(essn!, fid!, date!, start_time!),
+        {
+          essn: formData.essn,
+          fid: formData.fid,
+          date: formData.date,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+        },
+      );
       navigate("/schedules", {
         state: { message: "Schedule updated successfully!" },
       });

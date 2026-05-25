@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ExclamationTriangleIcon,
   PlusIcon,
@@ -272,7 +272,11 @@ const InfectionList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <Link
-                        to={`/infections/${infection.ssn}`}
+                        to={ROUTES.infectionDetail(
+                          infection.ssn,
+                          infection.date,
+                          infection.type_id,
+                        )}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
@@ -281,7 +285,11 @@ const InfectionList: React.FC = () => {
                       {user && (
                         <>
                           <Link
-                            to={`/infections/${infection.ssn}/edit`}
+                            to={ROUTES.infectionEdit(
+                              infection.ssn,
+                              infection.date,
+                              infection.type_id,
+                            )}
                             className="text-green-600 hover:text-green-900"
                             title="Edit"
                           >
@@ -335,7 +343,15 @@ const InfectionList: React.FC = () => {
         isOpen={deleteModalOpen}
         itemName={infectionToDelete?.person_name || "this infection record"}
         itemType="infection record"
-        deleteEndpoint={`${API_ENDPOINTS.infections}${infectionToDelete?.ssn}/`}
+        deleteEndpoint={
+          infectionToDelete
+            ? API_ENDPOINTS.infectionDetail(
+                infectionToDelete.ssn,
+                infectionToDelete.date,
+                infectionToDelete.type_id,
+              )
+            : ""
+        }
         onClose={handleDeleteCancel}
         onDelete={handleDeleteConfirm}
       />

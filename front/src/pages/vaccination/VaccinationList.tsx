@@ -4,7 +4,7 @@ import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ShieldCheckIcon,
   PlusIcon,
@@ -310,7 +310,11 @@ const VaccinationList: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
                       <Link
-                        to={`/vaccinations/${vaccination.ssn}`}
+                        to={ROUTES.vaccinationDetail(
+                          vaccination.ssn,
+                          vaccination.type_id,
+                          vaccination.date,
+                        )}
                         className="text-blue-600 hover:text-blue-900"
                         title="View Details"
                       >
@@ -319,7 +323,11 @@ const VaccinationList: React.FC = () => {
                       {user && (
                         <>
                           <Link
-                            to={`/vaccinations/${vaccination.ssn}/edit`}
+                            to={ROUTES.vaccinationEdit(
+                              vaccination.ssn,
+                              vaccination.type_id,
+                              vaccination.date,
+                            )}
                             className="text-green-600 hover:text-green-900"
                             title="Edit"
                           >
@@ -373,7 +381,15 @@ const VaccinationList: React.FC = () => {
         isOpen={deleteModalOpen}
         itemName={vaccinationToDelete?.person_name || "this vaccination record"}
         itemType="vaccination record"
-        deleteEndpoint={`${API_ENDPOINTS.vaccinations}${vaccinationToDelete?.ssn}/`}
+        deleteEndpoint={
+          vaccinationToDelete
+            ? API_ENDPOINTS.vaccinationDetail(
+                vaccinationToDelete.ssn,
+                vaccinationToDelete.type_id,
+                vaccinationToDelete.date,
+              )
+            : ""
+        }
         onClose={handleDeleteCancel}
         onDelete={handleDeleteConfirm}
       />
