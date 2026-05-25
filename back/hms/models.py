@@ -1,7 +1,46 @@
 from django.db import models
+from django.utils import timezone
 
 
-class Person(models.Model):
+class SoftDeleteManager(models.Manager):
+    """Default manager that hides rows with deleted_at set.
+
+    Use `Model.all_objects` to bypass the filter (admin views, restore flows).
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().filter(deleted_at__isnull=True)
+
+
+class SoftDeleteModelMixin(models.Model):
+    """Adds `deleted_at` + soft-delete semantics to a managed=False model.
+
+    The custom manager is configured per-subclass since Django requires the
+    first declared manager (`objects`) to be on the concrete model, not the
+    mixin, when the mixin is abstract.
+    """
+
+    deleted_at = models.DateTimeField(
+        null=True, blank=True, db_column="DeletedAt", editable=False
+    )
+
+    class Meta:
+        abstract = True
+
+    def delete(self, using=None, keep_parents=False):
+        self.deleted_at = timezone.now()
+        self.save(using=using, update_fields=["deleted_at"])
+
+    def hard_delete(self, using=None, keep_parents=False):
+        """Bypass soft delete and actually remove the row."""
+        super().delete(using=using, keep_parents=keep_parents)
+
+    def restore(self):
+        self.deleted_at = None
+        self.save(update_fields=["deleted_at"])
+
+
+class Person(SoftDeleteModelMixin, models.Model):
     # SSN is the logical join key across the system. The schema declares it
     # nullable, but FK(to_field="ssn") rows require non-null values.
     ssn = models.IntegerField(unique=True, null=True, blank=True, db_column="SSN")
@@ -24,6 +63,9 @@ class Person(models.Model):
         max_length=30, null=True, blank=True, db_column="Occupation"
     )
 
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "Persons"
         managed = False
@@ -32,7 +74,7 @@ class Person(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
-class Employee(models.Model):
+class Employee(SoftDeleteModelMixin, models.Model):
     ROLE_CHOICES = [
         ("nurse", "Nurse"),
         ("doctor", "Doctor"),
@@ -55,6 +97,9 @@ class Employee(models.Model):
     )
     role = models.CharField(max_length=50, choices=ROLE_CHOICES, db_column="Role")
 
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "Employees"
         managed = False
@@ -63,7 +108,7 @@ class Employee(models.Model):
         return f"Employee {self.person_id} - {self.role}"
 
 
-class Facility(models.Model):
+class Facility(SoftDeleteModelMixin, models.Model):
     TYPE_CHOICES = [
         ("Hospital", "Hospital"),
         ("CLSC", "CLSC"),
@@ -91,6 +136,9 @@ class Facility(models.Model):
         related_name="managed_facility",
     )
 
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "Facilities"
         managed = False
@@ -99,7 +147,7 @@ class Facility(models.Model):
         return f"{self.name} ({self.type})"
 
 
-class Residence(models.Model):
+class Residence(SoftDeleteModelMixin, models.Model):
     TYPE_CHOICES = [
         ("apartment", "Apartment"),
         ("condominium", "Condominium"),
@@ -116,6 +164,9 @@ class Residence(models.Model):
         null=True, blank=True, db_column="NoOfBedrooms"
     )
     type = models.CharField(max_length=30, choices=TYPE_CHOICES, db_column="Type")
+
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "Residences"
@@ -137,7 +188,7 @@ class InfectionType(models.Model):
         return self.type_name
 
 
-class Infection(models.Model):
+class Infection(SoftDeleteModelMixin, models.Model):
     pk = models.CompositePrimaryKey("person", "date", "infection_type")
     person = models.ForeignKey(
         Person,
@@ -155,6 +206,9 @@ class Infection(models.Model):
         on_delete=models.DO_NOTHING,
         related_name="infections",
     )
+
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "Infections"
@@ -176,7 +230,7 @@ class VaccineType(models.Model):
         return self.type_name
 
 
-class Vaccination(models.Model):
+class Vaccination(SoftDeleteModelMixin, models.Model):
     pk = models.CompositePrimaryKey("person", "vaccine_type", "date")
     person = models.ForeignKey(
         Person,
@@ -205,6 +259,9 @@ class Vaccination(models.Model):
         related_name="vaccinations",
     )
 
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "Vaccinations"
         managed = False
@@ -213,7 +270,7 @@ class Vaccination(models.Model):
         return f"Vaccination {self.vaccine_type_id} - {self.date}"
 
 
-class Employment(models.Model):
+class Employment(SoftDeleteModelMixin, models.Model):
     pk = models.CompositePrimaryKey("employee", "facility", "start_date")
     employee = models.ForeignKey(
         Employee,
@@ -232,6 +289,9 @@ class Employment(models.Model):
     start_date = models.DateField(db_column="StartDate")
     end_date = models.DateField(null=True, blank=True, db_column="EndDate")
 
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
+
     class Meta:
         db_table = "Employments"
         managed = False
@@ -240,7 +300,7 @@ class Employment(models.Model):
         return f"Employment {self.employee_id} at {self.facility_id}"
 
 
-class Schedule(models.Model):
+class Schedule(SoftDeleteModelMixin, models.Model):
     pk = models.CompositePrimaryKey("employee", "facility", "date", "start_time")
     employee = models.ForeignKey(
         Employee,
@@ -259,6 +319,9 @@ class Schedule(models.Model):
     date = models.DateField(db_column="Date")
     start_time = models.TimeField(db_column="StartTime")
     end_time = models.TimeField(null=True, blank=True, db_column="EndTime")
+
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
     class Meta:
         db_table = "Schedules"
