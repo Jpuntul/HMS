@@ -12,6 +12,14 @@ jobs:
     defaults:
       run:
         working-directory: back
+    env:
+      # CI is not production. DEBUG=True activates settings.py's dev fallback
+      # for SECRET_KEY; the explicit key is a belt-and-suspenders for any step
+      # that flips DEBUG off. This key is throwaway and intentionally not a
+      # secret - it never signs anything that leaves CI.
+      DEBUG: "True"
+      SECRET_KEY: "ci-only-throwaway-key-do-not-use-anywhere-else"
+      ALLOWED_HOSTS: "localhost,127.0.0.1"
 
     services:
       mysql:
