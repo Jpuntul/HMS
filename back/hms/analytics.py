@@ -2,15 +2,13 @@ from datetime import date, datetime, timedelta
 
 from django.db.models import Count, Q
 from django.db.models.functions import Extract
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from .models import Employee, Facility, Person
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def dashboard_stats(request):
     """Get overall dashboard statistics"""
 
@@ -71,7 +69,6 @@ def dashboard_stats(request):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def facility_analytics(request):
     """Get detailed facility analytics.
 
@@ -117,7 +114,6 @@ def facility_analytics(request):
 
 
 @api_view(["GET"])
-@permission_classes([AllowAny])
 def person_demographics(request):
     """Get person demographics analytics"""
 

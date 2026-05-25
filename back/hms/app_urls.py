@@ -1,9 +1,10 @@
 from django.urls import path
+from rest_framework_simplejwt.views import TokenRefreshView
 
 from .analytics import dashboard_stats, facility_analytics, person_demographics
 from .auth_views import (
+    LoginView,
     check_auth_view,
-    login_view,
     logout_view,
     profile_view,
     register_view,
@@ -34,8 +35,9 @@ from .views import (
 )
 
 urlpatterns = [
-    # Authentication endpoints
-    path("auth/login/", login_view, name="login"),
+    # Authentication endpoints (JWT)
+    path("auth/login/", LoginView.as_view(), name="login"),
+    path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
     path("auth/logout/", logout_view, name="logout"),
     path("auth/profile/", profile_view, name="profile"),
     path("auth/register/", register_view, name="register"),

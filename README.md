@@ -6,10 +6,10 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 
 ### 🔐 Security & Authentication
 
-- **Hybrid Authentication**: Browse all data without login, authenticate only for CRUD operations
-- **Admin-Only Registration**: Staff registration restricted to administrators for security
-- **Token-Based Auth**: DRF `TokenAuthentication` (opaque tokens) for the API
-- **CSRF Protection**: Configured for cross-origin requests with trusted origins
+- **Auth Required**: Every API endpoint requires authentication — no public PHI browsing
+- **JWT Bearer Tokens**: Short-lived access tokens (15 min) + rotating refresh tokens (1 day) via `djangorestframework-simplejwt`
+- **Admin-Only Registration**: Staff registration restricted to administrators
+- **Cookie + Header Hardening**: `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `X_FRAME_OPTIONS=DENY` auto-enabled in non-DEBUG
 
 ### 📊 Healthcare Management
 
@@ -39,7 +39,7 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 - **MySQL** - Production database
 - **SQLite** - Development database option
 - **python-dotenv** - Environment variable management
-- **Token Authentication** - DRF opaque tokens
+- **JWT Authentication** - access + refresh tokens via `djangorestframework-simplejwt`
 
 ### Frontend
 

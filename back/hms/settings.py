@@ -168,17 +168,42 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Django REST Framework settings
+# Django REST Framework settings.
+#
+# Authentication: JWT (Bearer access + refresh) is the primary mechanism.
+# SessionAuthentication is kept so the DRF browsable API + Django admin still
+# work for staff. The legacy DRF TokenAuthentication is removed - any existing
+# tokens are no longer accepted.
+#
+# Permissions: IsAuthenticated by default. Reads and writes both require a
+# token now. Endpoints that genuinely need to be public (only auth/token
+# obtain/refresh in practice) opt in via permission_classes = [AllowAny] on
+# the view.
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
-        "rest_framework.authentication.TokenAuthentication",
     ],
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.AllowAny",
+        "rest_framework.permissions.IsAuthenticated",
     ],
     "DEFAULT_PAGINATION_CLASS": "hms.pagination.CustomPageNumberPagination",
     "PAGE_SIZE": 20,
+}
+
+# SimpleJWT settings. Short-lived access tokens force regular refresh; refresh
+# tokens are rotated and blacklisted on use so a stolen refresh can only be
+# used once before invalidation.
+from datetime import timedelta  # noqa: E402
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": False,  # blacklist app not installed by default
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
 }
 
 # CORS settings. In dev, default to the local Vite ports. In any other env,

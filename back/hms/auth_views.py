@@ -1,9 +1,15 @@
+"""Auth endpoints: JWT login (access + refresh), profile, register, check.
+
+The legacy DRF Token-based login was replaced with djangorestframework-simplejwt
+in the auth foundation pass. The wire shape of /api/auth/login/ stays
+backwards-compatible: success returns user info plus tokens, just under
+`access` / `refresh` keys instead of a single `token`.
+"""
+
 import json
 
-from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.authtoken.models import Token
 from rest_framework.decorators import (
     api_view,
     authentication_classes,
@@ -11,132 +17,66 @@ from rest_framework.decorators import (
 )
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 
-@api_view(["POST"])
-@authentication_classes([])  # No authentication for login
-@permission_classes([AllowAny])
-def login_view(request):
-    """
-    Login endpoint that creates a session and returns user info with token
-    """
-    try:
-        data = json.loads(request.body) if request.body else request.data
-        username = data.get("username")
-        password = data.get("password")
+def _user_payload(user):
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "is_staff": user.is_staff,
+        "is_superuser": user.is_superuser,
+    }
 
-        if not username or not password:
-            return Response(
-                {"error": "Username and password are required"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
 
-        user = authenticate(username=username, password=password)
+class LoginSerializer(TokenObtainPairSerializer):
+    """Adds a `user` block to the standard {access, refresh} payload."""
 
-        if user is not None:
-            if user.is_active:
-                login(request, user)
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data["user"] = _user_payload(self.user)
+        data["success"] = True
+        data["message"] = "Login successful"
+        return data
 
-                # Get or create token for the user
-                token, created = Token.objects.get_or_create(user=user)
 
-                return Response(
-                    {
-                        "success": True,
-                        "message": "Login successful",
-                        "user": {
-                            "id": user.id,
-                            "username": user.username,
-                            "email": user.email,
-                            "first_name": user.first_name,
-                            "last_name": user.last_name,
-                            "is_staff": user.is_staff,
-                            "is_superuser": user.is_superuser,
-                        },
-                        "token": token.key,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                return Response(
-                    {"error": "User account is disabled"},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            return Response(
-                {"error": "Invalid username or password"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-    except json.JSONDecodeError:
-        return Response(
-            {"error": "Invalid JSON data"}, status=status.HTTP_400_BAD_REQUEST
-        )
-    except Exception as e:
-        return Response(
-            {"error": f"An error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+class LoginView(TokenObtainPairView):
+    """POST /api/auth/login/ -> {access, refresh, user, success, message}."""
+
+    serializer_class = LoginSerializer
+    permission_classes = [AllowAny]
+    authentication_classes: list = []
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-    """
-    Logout endpoint that destroys the session and token
-    """
-    try:
-        # Delete the user's token
-        if hasattr(request.user, "auth_token"):
-            request.user.auth_token.delete()
+    """Stateless logout for JWT.
 
-        logout(request)
-
-        return Response(
-            {"success": True, "message": "Logout successful"}, status=status.HTTP_200_OK
-        )
-    except Exception as e:
-        return Response(
-            {"error": f"An error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    With JWT there is no server-side session to destroy. The frontend should
+    drop both access and refresh tokens locally. We respond 200 either way
+    so the UI can finalize without a network-error UX.
+    """
+    return Response(
+        {"success": True, "message": "Logout successful"}, status=status.HTTP_200_OK
+    )
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
-    """
-    Get current user profile information
-    """
-    try:
-        user = request.user
-        return Response(
-            {
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                    "is_staff": user.is_staff,
-                    "is_superuser": user.is_superuser,
-                }
-            },
-            status=status.HTTP_200_OK,
-        )
-    except Exception as e:
-        return Response(
-            {"error": f"An error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
+    """Current user profile."""
+    return Response({"user": _user_payload(request.user)}, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def register_view(request):
-    """
-    Register a new user account (Admin/Staff only)
-    """
-    # Check if user is staff
+    """Register a new user account (Admin/Staff only)."""
     if not request.user.is_staff:
         return Response(
             {"error": "Only staff members can register new users"},
@@ -157,13 +97,12 @@ def register_view(request):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Check if username already exists
         if User.objects.filter(username=username).exists():
             return Response(
-                {"error": "Username already exists"}, status=status.HTTP_400_BAD_REQUEST
+                {"error": "Username already exists"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Create new user
         user = User.objects.create_user(
             username=username,
             password=password,
@@ -172,21 +111,11 @@ def register_view(request):
             last_name=last_name,
         )
 
-        # Create token for the user
-        token = Token.objects.create(user=user)
-
         return Response(
             {
                 "success": True,
                 "message": "User registered successfully",
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "first_name": user.first_name,
-                    "last_name": user.last_name,
-                },
-                "token": token.key,
+                "user": _user_payload(user),
             },
             status=status.HTTP_201_CREATED,
         )
@@ -195,34 +124,16 @@ def register_view(request):
         return Response(
             {"error": "Invalid JSON data"}, status=status.HTTP_400_BAD_REQUEST
         )
-    except Exception as e:
-        return Response(
-            {"error": f"An error occurred: {str(e)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        )
 
 
 @api_view(["GET"])
+@authentication_classes([])
 @permission_classes([AllowAny])
 def check_auth_view(request):
+    """Cheap unauthenticated probe used by the frontend on app load.
+
+    Always returns {authenticated: false} when called without a valid token.
+    The real way to learn 'am I logged in' is to call /api/auth/profile/ with
+    a Bearer access token.
     """
-    Check if user is authenticated
-    """
-    if request.user.is_authenticated:
-        return Response(
-            {
-                "authenticated": True,
-                "user": {
-                    "id": request.user.id,
-                    "username": request.user.username,
-                    "email": request.user.email,
-                    "first_name": request.user.first_name,
-                    "last_name": request.user.last_name,
-                    "is_staff": request.user.is_staff,
-                    "is_superuser": request.user.is_superuser,
-                },
-            },
-            status=status.HTTP_200_OK,
-        )
-    else:
-        return Response({"authenticated": False}, status=status.HTTP_200_OK)
+    return Response({"authenticated": False}, status=status.HTTP_200_OK)

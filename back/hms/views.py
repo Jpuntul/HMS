@@ -3,7 +3,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import generics
 from rest_framework.decorators import api_view
 from rest_framework.filters import OrderingFilter, SearchFilter
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 
 from .models import (
@@ -54,7 +53,6 @@ class CompositeLookupMixin:
 class PersonListCreateView(generics.ListCreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = [
         "first_name",
@@ -73,13 +71,11 @@ class PersonListCreateView(generics.ListCreateAPIView):
 class PersonDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
     queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = [
         "person__ssn",
@@ -96,13 +92,11 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class FacilityListCreateView(generics.ListCreateAPIView):
     queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = ["name", "address", "city", "type", "phone_number"]
     filterset_fields = ["type", "city", "province"]
@@ -113,13 +107,11 @@ class FacilityListCreateView(generics.ListCreateAPIView):
 class FacilityDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class ResidenceListCreateView(generics.ListCreateAPIView):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
     search_fields = ["address", "city", "province", "postal_code"]
     filterset_fields = ["type", "city", "province"]
@@ -130,13 +122,11 @@ class ResidenceListCreateView(generics.ListCreateAPIView):
 class ResidenceDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class InfectionTypeListCreateView(generics.ListCreateAPIView):
     queryset = InfectionType.objects.all()
     serializer_class = InfectionTypeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["type_name"]
     ordering = ["type_name"]
@@ -145,13 +135,11 @@ class InfectionTypeListCreateView(generics.ListCreateAPIView):
 class InfectionTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = InfectionType.objects.all()
     serializer_class = InfectionTypeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class InfectionListCreateView(generics.ListCreateAPIView):
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["person", "infection_type", "date"]
     ordering_fields = ["date", "person"]
@@ -161,7 +149,6 @@ class InfectionListCreateView(generics.ListCreateAPIView):
 class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     composite_lookup_map = {
         "ssn": "person_id",
         "date": "date",
@@ -172,7 +159,6 @@ class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAP
 class VaccineTypeListCreateView(generics.ListCreateAPIView):
     queryset = VaccineType.objects.all()
     serializer_class = VaccineTypeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [SearchFilter, OrderingFilter]
     search_fields = ["type_name"]
     ordering = ["type_name"]
@@ -181,7 +167,6 @@ class VaccineTypeListCreateView(generics.ListCreateAPIView):
 class VaccineTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = VaccineType.objects.all()
     serializer_class = VaccineTypeSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
 
 
 class VaccinationListCreateView(generics.ListCreateAPIView):
@@ -189,7 +174,6 @@ class VaccinationListCreateView(generics.ListCreateAPIView):
         "person", "vaccine_type", "facility"
     ).all()
     serializer_class = VaccinationSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["person", "vaccine_type", "facility", "no_of_dose"]
     ordering_fields = ["date", "person"]
@@ -203,7 +187,6 @@ class VaccinationDetailView(
         "person", "vaccine_type", "facility"
     ).all()
     serializer_class = VaccinationSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     composite_lookup_map = {
         "ssn": "person_id",
         "type_id": "vaccine_type_id",
@@ -214,7 +197,6 @@ class VaccinationDetailView(
 class EmploymentListCreateView(generics.ListCreateAPIView):
     queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["employee", "facility"]
     ordering_fields = ["start_date", "end_date"]
@@ -224,7 +206,6 @@ class EmploymentListCreateView(generics.ListCreateAPIView):
 class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     composite_lookup_map = {
         "essn": "employee_id",
         "fid": "facility_id",
@@ -235,7 +216,6 @@ class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyA
 class ScheduleListCreateView(generics.ListCreateAPIView):
     queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ["employee", "facility", "date"]
     ordering_fields = ["date", "start_time"]
@@ -245,7 +225,6 @@ class ScheduleListCreateView(generics.ListCreateAPIView):
 class ScheduleDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
     composite_lookup_map = {
         "essn": "employee_id",
         "fid": "facility_id",
