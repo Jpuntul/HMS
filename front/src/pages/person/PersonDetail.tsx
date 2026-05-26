@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   UserIcon,
   PencilSquareIcon,
@@ -25,7 +25,7 @@ interface PersonData {
 }
 
 const PersonDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const [person, setPerson] = useState<PersonData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,13 +33,13 @@ const PersonDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchPerson = async () => {
-      if (!id) {
+      if (!uuid) {
         navigate("/persons");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.persons}${id}/`);
+        const response = await axios.get(API_ENDPOINTS.personDetail(uuid));
         setPerson(response.data);
       } catch (error) {
         console.error("Error fetching person:", error);
@@ -50,7 +50,7 @@ const PersonDetail: React.FC = () => {
     };
 
     fetchPerson();
-  }, [id, navigate]);
+  }, [uuid, navigate]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -121,7 +121,7 @@ const PersonDetail: React.FC = () => {
               </div>
             </div>
             <Link
-              to={`/persons/${id}/edit`}
+              to={ROUTES.personEdit(uuid!)}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

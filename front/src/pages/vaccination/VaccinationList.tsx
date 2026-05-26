@@ -17,6 +17,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface Vaccination {
+  person_uuid: string;
   ssn: number;
   type_id: number;
   date: string;
@@ -311,7 +312,7 @@ const VaccinationList: React.FC = () => {
                     <div className="flex justify-end space-x-2">
                       <Link
                         to={ROUTES.vaccinationDetail(
-                          vaccination.ssn,
+                          vaccination.person_uuid,
                           vaccination.type_id,
                           vaccination.date,
                         )}
@@ -324,7 +325,7 @@ const VaccinationList: React.FC = () => {
                         <>
                           <Link
                             to={ROUTES.vaccinationEdit(
-                              vaccination.ssn,
+                              vaccination.person_uuid,
                               vaccination.type_id,
                               vaccination.date,
                             )}
@@ -384,7 +385,7 @@ const VaccinationList: React.FC = () => {
         deleteEndpoint={
           vaccinationToDelete
             ? API_ENDPOINTS.vaccinationDetail(
-                vaccinationToDelete.ssn,
+                vaccinationToDelete.person_uuid,
                 vaccinationToDelete.type_id,
                 vaccinationToDelete.date,
               )

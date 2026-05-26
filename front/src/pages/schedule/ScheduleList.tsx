@@ -18,6 +18,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface Schedule {
+  person_uuid: string;
   essn: number;
   fid: number;
   date: string;
@@ -391,7 +392,7 @@ const ScheduleList: React.FC = () => {
                     <div className="flex space-x-2">
                       <Link
                         to={ROUTES.scheduleDetail(
-                          schedule.essn,
+                          schedule.person_uuid,
                           schedule.fid,
                           schedule.date,
                           schedule.start_time,
@@ -405,7 +406,7 @@ const ScheduleList: React.FC = () => {
                         <>
                           <Link
                             to={ROUTES.scheduleEdit(
-                              schedule.essn,
+                              schedule.person_uuid,
                               schedule.fid,
                               schedule.date,
                               schedule.start_time,
@@ -530,7 +531,7 @@ const ScheduleList: React.FC = () => {
         deleteEndpoint={
           scheduleToDelete
             ? API_ENDPOINTS.scheduleDetail(
-                scheduleToDelete.essn,
+                scheduleToDelete.person_uuid,
                 scheduleToDelete.fid,
                 scheduleToDelete.date,
                 scheduleToDelete.start_time,

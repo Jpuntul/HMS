@@ -17,7 +17,7 @@ interface PersonFormData {
 
 const EditPerson: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { uuid } = useParams<{ uuid: string }>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -36,13 +36,13 @@ const EditPerson: React.FC = () => {
   // Load person data when component mounts
   useEffect(() => {
     const fetchPerson = async () => {
-      if (!id) {
+      if (!uuid) {
         navigate("/persons");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.persons}${id}/`);
+        const response = await axios.get(API_ENDPOINTS.personDetail(uuid));
         setFormData(response.data);
       } catch (error) {
         console.error("Error fetching person:", error);
@@ -53,7 +53,7 @@ const EditPerson: React.FC = () => {
     };
 
     fetchPerson();
-  }, [id, navigate]);
+  }, [uuid, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -99,7 +99,7 @@ const EditPerson: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_ENDPOINTS.persons}${id}/`, formData);
+      await axios.put(API_ENDPOINTS.personDetail(uuid!), formData);
       navigate("/persons", {
         state: { message: "Person updated successfully!" },
       });

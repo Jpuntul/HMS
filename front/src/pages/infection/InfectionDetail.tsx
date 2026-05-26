@@ -17,8 +17,8 @@ interface InfectionData {
 }
 
 const InfectionDetail: React.FC = () => {
-  const { ssn, date, type_id } = useParams<{
-    ssn: string;
+  const { person_uuid, date, type_id } = useParams<{
+    person_uuid: string;
     date: string;
     type_id: string;
   }>();
@@ -29,14 +29,14 @@ const InfectionDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchInfection = async () => {
-      if (!ssn || !date || !type_id) {
+      if (!person_uuid || !date || !type_id) {
         navigate("/infections");
         return;
       }
 
       try {
         const response = await axios.get(
-          API_ENDPOINTS.infectionDetail(ssn, date, type_id),
+          API_ENDPOINTS.infectionDetail(person_uuid, date, type_id),
         );
         setInfection(response.data);
       } catch (error) {
@@ -48,7 +48,7 @@ const InfectionDetail: React.FC = () => {
     };
 
     fetchInfection();
-  }, [ssn, date, type_id, navigate]);
+  }, [person_uuid, date, type_id, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -110,7 +110,7 @@ const InfectionDetail: React.FC = () => {
               </div>
             </div>
             <Link
-              to={ROUTES.infectionEdit(ssn!, date!, type_id!)}
+              to={ROUTES.infectionEdit(person_uuid!, date!, type_id!)}
               className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   UserGroupIcon,
   PencilSquareIcon,
@@ -17,7 +17,7 @@ interface EmployeeData {
 }
 
 const EmployeeDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { uuid } = useParams<{ uuid: string }>();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState<EmployeeData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,13 +25,13 @@ const EmployeeDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchEmployee = async () => {
-      if (!id) {
+      if (!uuid) {
         navigate("/employees");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.employees}${id}/`);
+        const response = await axios.get(API_ENDPOINTS.employeeDetail(uuid));
         setEmployee(response.data);
       } catch (error) {
         console.error("Error fetching employee:", error);
@@ -42,7 +42,7 @@ const EmployeeDetail: React.FC = () => {
     };
 
     fetchEmployee();
-  }, [id, navigate]);
+  }, [uuid, navigate]);
 
   if (loading) {
     return (
@@ -91,7 +91,7 @@ const EmployeeDetail: React.FC = () => {
               </div>
             </div>
             <Link
-              to={`/employees/${id}/edit`}
+              to={ROUTES.employeeEdit(uuid!)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

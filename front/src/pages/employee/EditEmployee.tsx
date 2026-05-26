@@ -22,7 +22,7 @@ const ROLE_CHOICES = [
 
 const EditEmployee: React.FC = () => {
   const navigate = useNavigate();
-  const { id } = useParams<{ id: string }>();
+  const { uuid } = useParams<{ uuid: string }>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -35,13 +35,13 @@ const EditEmployee: React.FC = () => {
   // Load employee data when component mounts
   useEffect(() => {
     const fetchEmployee = async () => {
-      if (!id) {
+      if (!uuid) {
         navigate("/employees");
         return;
       }
 
       try {
-        const response = await axios.get(`${API_ENDPOINTS.employees}${id}/`);
+        const response = await axios.get(API_ENDPOINTS.employeeDetail(uuid));
         setFormData(response.data);
         setPersonName(response.data.person_name || "");
       } catch (error) {
@@ -53,7 +53,7 @@ const EditEmployee: React.FC = () => {
     };
 
     fetchEmployee();
-  }, [id, navigate]);
+  }, [uuid, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -87,7 +87,7 @@ const EditEmployee: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(`${API_ENDPOINTS.employees}${id}/`, formData);
+      await axios.put(API_ENDPOINTS.employeeDetail(uuid!), formData);
       navigate("/employees", {
         state: { message: "Employee updated successfully!" },
       });

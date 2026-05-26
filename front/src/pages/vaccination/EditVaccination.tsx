@@ -29,8 +29,8 @@ interface VaccinationFormData {
 
 const EditVaccination: React.FC = () => {
   const navigate = useNavigate();
-  const { ssn, type_id, date } = useParams<{
-    ssn: string;
+  const { person_uuid, type_id, date } = useParams<{
+    person_uuid: string;
     type_id: string;
     date: string;
   }>();
@@ -53,7 +53,7 @@ const EditVaccination: React.FC = () => {
   // Load vaccination data, types, and facilities when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!ssn || !type_id || !date) {
+      if (!person_uuid || !type_id || !date) {
         navigate("/vaccinations");
         return;
       }
@@ -61,7 +61,9 @@ const EditVaccination: React.FC = () => {
       try {
         const [vaccinationResponse, typesResponse, facilitiesResponse] =
           await Promise.all([
-            axios.get(API_ENDPOINTS.vaccinationDetail(ssn, type_id, date)),
+            axios.get(
+              API_ENDPOINTS.vaccinationDetail(person_uuid, type_id, date),
+            ),
             axios.get(API_ENDPOINTS.vaccineTypes),
             axios.get(API_ENDPOINTS.facilities),
           ]);
@@ -82,7 +84,7 @@ const EditVaccination: React.FC = () => {
     };
 
     fetchData();
-  }, [ssn, type_id, date, navigate]);
+  }, [person_uuid, type_id, date, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -128,13 +130,16 @@ const EditVaccination: React.FC = () => {
 
     setLoading(true);
     try {
-      await axios.put(API_ENDPOINTS.vaccinationDetail(ssn!, type_id!, date!), {
-        ssn: formData.ssn,
-        type_id: formData.type_id,
-        date: formData.date,
-        no_of_dose: formData.no_of_dose,
-        fid: formData.fid,
-      });
+      await axios.put(
+        API_ENDPOINTS.vaccinationDetail(person_uuid!, type_id!, date!),
+        {
+          ssn: formData.ssn,
+          type_id: formData.type_id,
+          date: formData.date,
+          no_of_dose: formData.no_of_dose,
+          fid: formData.fid,
+        },
+      );
       navigate("/vaccinations", {
         state: { message: "Vaccination record updated successfully!" },
       });

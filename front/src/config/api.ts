@@ -23,32 +23,38 @@ export const API_ENDPOINTS = {
   // Facilities
   facilities: `${API_BASE_URL}/api/facilities/`,
 
-  // Infections (composite PK: ssn + date + type_id)
+  // Persons (URL identifier is person.uuid, never Medicare/SSN)
+  personDetail: (uuid: string) => `${API_BASE_URL}/api/persons/${uuid}/`,
+  // Employees (lookup via person.uuid through the OneToOne)
+  employeeDetail: (uuid: string) => `${API_BASE_URL}/api/employees/${uuid}/`,
+
+  // Infections (composite PK; URL exposes person.uuid, not SSN)
   infections: `${API_BASE_URL}/api/infections/`,
   infectionTypes: `${API_BASE_URL}/api/infection-types/`,
   infectionDetail: (
-    ssn: number | string,
+    personUuid: string,
     date: string,
     typeId: number | string,
-  ) => `${API_BASE_URL}/api/infections/${ssn}/${date}/${typeId}/`,
+  ) => `${API_BASE_URL}/api/infections/${personUuid}/${date}/${typeId}/`,
 
-  // Vaccinations (composite PK: ssn + type_id + date)
+  // Vaccinations (composite PK; URL exposes person.uuid, not SSN)
   vaccinations: `${API_BASE_URL}/api/vaccinations/`,
   vaccineTypes: `${API_BASE_URL}/api/vaccine-types/`,
   vaccinationDetail: (
-    ssn: number | string,
+    personUuid: string,
     typeId: number | string,
     date: string,
-  ) => `${API_BASE_URL}/api/vaccinations/${ssn}/${typeId}/${date}/`,
+  ) => `${API_BASE_URL}/api/vaccinations/${personUuid}/${typeId}/${date}/`,
 
-  // Schedules (composite PK: essn + fid + date + start_time)
+  // Schedules (composite PK; URL exposes person.uuid, not ESSN)
   schedules: `${API_BASE_URL}/api/schedules/`,
   scheduleDetail: (
-    essn: number | string,
+    personUuid: string,
     fid: number | string,
     date: string,
     startTime: string,
-  ) => `${API_BASE_URL}/api/schedules/${essn}/${fid}/${date}/${startTime}/`,
+  ) =>
+    `${API_BASE_URL}/api/schedules/${personUuid}/${fid}/${date}/${startTime}/`,
 
   // Analytics
   analytics: {
@@ -58,41 +64,45 @@ export const API_ENDPOINTS = {
   },
 };
 
-// Frontend route builders — must mirror the backend composite-PK URL shape so
-// React Router params line up with the API path segments.
+// Frontend route builders — must mirror the backend URL shape so React
+// Router params line up with the API path segments. Every entity that
+// previously carried SSN/Medicare in its URL now carries a person UUID.
 export const ROUTES = {
+  personDetail: (uuid: string) => `/persons/${uuid}`,
+  personEdit: (uuid: string) => `/persons/${uuid}/edit`,
+
+  employeeDetail: (uuid: string) => `/employees/${uuid}`,
+  employeeEdit: (uuid: string) => `/employees/${uuid}/edit`,
+
   infectionDetail: (
-    ssn: number | string,
+    personUuid: string,
     date: string,
     typeId: number | string,
-  ) => `/infections/${ssn}/${date}/${typeId}`,
-  infectionEdit: (
-    ssn: number | string,
-    date: string,
-    typeId: number | string,
-  ) => `/infections/${ssn}/${date}/${typeId}/edit`,
+  ) => `/infections/${personUuid}/${date}/${typeId}`,
+  infectionEdit: (personUuid: string, date: string, typeId: number | string) =>
+    `/infections/${personUuid}/${date}/${typeId}/edit`,
 
   vaccinationDetail: (
-    ssn: number | string,
+    personUuid: string,
     typeId: number | string,
     date: string,
-  ) => `/vaccinations/${ssn}/${typeId}/${date}`,
+  ) => `/vaccinations/${personUuid}/${typeId}/${date}`,
   vaccinationEdit: (
-    ssn: number | string,
+    personUuid: string,
     typeId: number | string,
     date: string,
-  ) => `/vaccinations/${ssn}/${typeId}/${date}/edit`,
+  ) => `/vaccinations/${personUuid}/${typeId}/${date}/edit`,
 
   scheduleDetail: (
-    essn: number | string,
+    personUuid: string,
     fid: number | string,
     date: string,
     startTime: string,
-  ) => `/schedules/${essn}/${fid}/${date}/${startTime}`,
+  ) => `/schedules/${personUuid}/${fid}/${date}/${startTime}`,
   scheduleEdit: (
-    essn: number | string,
+    personUuid: string,
     fid: number | string,
     date: string,
     startTime: string,
-  ) => `/schedules/${essn}/${fid}/${date}/${startTime}/edit`,
+  ) => `/schedules/${personUuid}/${fid}/${date}/${startTime}/edit`,
 };

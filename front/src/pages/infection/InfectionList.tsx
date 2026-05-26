@@ -16,6 +16,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface Infection {
+  person_uuid: string;
   ssn: number;
   date: string;
   type_id: number;
@@ -273,7 +274,7 @@ const InfectionList: React.FC = () => {
                     <div className="flex justify-end space-x-2">
                       <Link
                         to={ROUTES.infectionDetail(
-                          infection.ssn,
+                          infection.person_uuid,
                           infection.date,
                           infection.type_id,
                         )}
@@ -286,7 +287,7 @@ const InfectionList: React.FC = () => {
                         <>
                           <Link
                             to={ROUTES.infectionEdit(
-                              infection.ssn,
+                              infection.person_uuid,
                               infection.date,
                               infection.type_id,
                             )}
@@ -346,7 +347,7 @@ const InfectionList: React.FC = () => {
         deleteEndpoint={
           infectionToDelete
             ? API_ENDPOINTS.infectionDetail(
-                infectionToDelete.ssn,
+                infectionToDelete.person_uuid,
                 infectionToDelete.date,
                 infectionToDelete.type_id,
               )

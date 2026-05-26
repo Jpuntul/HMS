@@ -406,57 +406,60 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/dashboard" element={<Dashboard />} />
 
-                {/* Person */}
+                {/* Person (URL identifier is person.uuid) */}
                 <Route path="/persons" element={<PersonList />} />
                 <Route path="/persons/add" element={<AddPerson />} />
-                <Route path="/persons/:id" element={<PersonDetail />} />
-                <Route path="/persons/:id/edit" element={<EditPerson />} />
+                <Route path="/persons/:uuid" element={<PersonDetail />} />
+                <Route path="/persons/:uuid/edit" element={<EditPerson />} />
 
-                {/* Employee */}
+                {/* Employee (lookup via person.uuid) */}
                 <Route path="/employees" element={<EmployeeList />} />
                 <Route path="/employees/add" element={<AddEmployee />} />
-                <Route path="/employees/:id" element={<EmployeeDetail />} />
-                <Route path="/employees/:id/edit" element={<EditEmployee />} />
+                <Route path="/employees/:uuid" element={<EmployeeDetail />} />
+                <Route
+                  path="/employees/:uuid/edit"
+                  element={<EditEmployee />}
+                />
 
-                {/* Facility */}
+                {/* Facility (no PII identifier — keeps numeric fid) */}
                 <Route path="/facilities" element={<FacilityList />} />
                 <Route path="/facilities/add" element={<AddFacility />} />
                 <Route path="/facilities/:id" element={<FacilityDetail />} />
                 <Route path="/facilities/:id/edit" element={<EditFacility />} />
 
-                {/* Infection (composite PK: ssn + date + type_id) */}
+                {/* Infection (composite PK; URL exposes person.uuid, not SSN) */}
                 <Route path="/infections" element={<InfectionList />} />
                 <Route path="/infections/add" element={<AddInfection />} />
                 <Route
-                  path="/infections/:ssn/:date/:type_id"
+                  path="/infections/:person_uuid/:date/:type_id"
                   element={<InfectionDetail />}
                 />
                 <Route
-                  path="/infections/:ssn/:date/:type_id/edit"
+                  path="/infections/:person_uuid/:date/:type_id/edit"
                   element={<EditInfection />}
                 />
 
-                {/* Vaccination (composite PK: ssn + type_id + date) */}
+                {/* Vaccination (composite PK; URL exposes person.uuid, not SSN) */}
                 <Route path="/vaccinations" element={<VaccinationList />} />
                 <Route path="/vaccinations/add" element={<AddVaccination />} />
                 <Route
-                  path="/vaccinations/:ssn/:type_id/:date"
+                  path="/vaccinations/:person_uuid/:type_id/:date"
                   element={<VaccinationDetail />}
                 />
                 <Route
-                  path="/vaccinations/:ssn/:type_id/:date/edit"
+                  path="/vaccinations/:person_uuid/:type_id/:date/edit"
                   element={<EditVaccination />}
                 />
 
-                {/* Schedule (composite PK: essn + fid + date + start_time) */}
+                {/* Schedule (composite PK; URL exposes person.uuid, not ESSN) */}
                 <Route path="/schedules" element={<ScheduleList />} />
                 <Route path="/schedules/add" element={<AddSchedule />} />
                 <Route
-                  path="/schedules/:essn/:fid/:date/:start_time"
+                  path="/schedules/:person_uuid/:fid/:date/:start_time"
                   element={<ScheduleDetail />}
                 />
                 <Route
-                  path="/schedules/:essn/:fid/:date/:start_time/edit"
+                  path="/schedules/:person_uuid/:fid/:date/:start_time/edit"
                   element={<EditSchedule />}
                 />
 

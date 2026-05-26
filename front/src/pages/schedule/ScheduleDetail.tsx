@@ -21,8 +21,8 @@ interface ScheduleData {
 }
 
 const ScheduleDetail: React.FC = () => {
-  const { essn, fid, date, start_time } = useParams<{
-    essn: string;
+  const { person_uuid, fid, date, start_time } = useParams<{
+    person_uuid: string;
     fid: string;
     date: string;
     start_time: string;
@@ -34,14 +34,14 @@ const ScheduleDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchSchedule = async () => {
-      if (!essn || !fid || !date || !start_time) {
+      if (!person_uuid || !fid || !date || !start_time) {
         navigate("/schedules");
         return;
       }
 
       try {
         const response = await axios.get(
-          API_ENDPOINTS.scheduleDetail(essn, fid, date, start_time),
+          API_ENDPOINTS.scheduleDetail(person_uuid, fid, date, start_time),
         );
         setSchedule(response.data);
       } catch (error) {
@@ -53,7 +53,7 @@ const ScheduleDetail: React.FC = () => {
     };
 
     fetchSchedule();
-  }, [essn, fid, date, start_time, navigate]);
+  }, [person_uuid, fid, date, start_time, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -139,7 +139,7 @@ const ScheduleDetail: React.FC = () => {
               </div>
             </div>
             <Link
-              to={ROUTES.scheduleEdit(essn!, fid!, date!, start_time!)}
+              to={ROUTES.scheduleEdit(person_uuid!, fid!, date!, start_time!)}
               className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />

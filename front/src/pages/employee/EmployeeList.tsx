@@ -6,7 +6,7 @@ import FilterDropdown from "../../components/FilterDropdown";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { useAuth } from "../../contexts/AuthContext";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   UserGroupIcon,
   PhoneIcon,
@@ -36,6 +36,7 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 interface Employee {
+  uuid: string;
   ssn: number;
   role: string;
   person_name: string;
@@ -328,7 +329,7 @@ const EmployeeList: React.FC = () => {
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
                     <Link
-                      to={`/employees/${employee.ssn}`}
+                      to={ROUTES.employeeDetail(employee.uuid)}
                       className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
                     >
                       <EyeIcon className="h-3 w-3" />
@@ -337,7 +338,7 @@ const EmployeeList: React.FC = () => {
                     {user && (
                       <>
                         <Link
-                          to={`/employees/${employee.ssn}/edit`}
+                          to={ROUTES.employeeEdit(employee.uuid)}
                           className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
                         >
                           <PencilIcon className="h-3 w-3" />
@@ -388,7 +389,11 @@ const EmployeeList: React.FC = () => {
         isOpen={deleteModalOpen}
         itemName={employeeToDelete?.person_name || "this employee"}
         itemType="employee"
-        deleteEndpoint={`${API_ENDPOINTS.employees}${employeeToDelete?.ssn}/`}
+        deleteEndpoint={
+          employeeToDelete
+            ? API_ENDPOINTS.employeeDetail(employeeToDelete.uuid)
+            : ""
+        }
         onClose={handleDeleteCancel}
         onDelete={handleDeleteConfirm}
       />

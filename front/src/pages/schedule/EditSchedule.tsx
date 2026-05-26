@@ -24,8 +24,8 @@ interface ScheduleFormData {
 
 const EditSchedule: React.FC = () => {
   const navigate = useNavigate();
-  const { essn, fid, date, start_time } = useParams<{
-    essn: string;
+  const { person_uuid, fid, date, start_time } = useParams<{
+    person_uuid: string;
     fid: string;
     date: string;
     start_time: string;
@@ -48,14 +48,16 @@ const EditSchedule: React.FC = () => {
   // Load schedule data and facilities when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!essn || !fid || !date || !start_time) {
+      if (!person_uuid || !fid || !date || !start_time) {
         navigate("/schedules");
         return;
       }
 
       try {
         const [scheduleResponse, facilitiesResponse] = await Promise.all([
-          axios.get(API_ENDPOINTS.scheduleDetail(essn, fid, date, start_time)),
+          axios.get(
+            API_ENDPOINTS.scheduleDetail(person_uuid, fid, date, start_time),
+          ),
           axios.get(API_ENDPOINTS.facilities),
         ]);
         setFormData(scheduleResponse.data);
@@ -74,7 +76,7 @@ const EditSchedule: React.FC = () => {
     };
 
     fetchData();
-  }, [essn, fid, date, start_time, navigate]);
+  }, [person_uuid, fid, date, start_time, navigate]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -120,7 +122,7 @@ const EditSchedule: React.FC = () => {
     setLoading(true);
     try {
       await axios.put(
-        API_ENDPOINTS.scheduleDetail(essn!, fid!, date!, start_time!),
+        API_ENDPOINTS.scheduleDetail(person_uuid!, fid!, date!, start_time!),
         {
           essn: formData.essn,
           fid: formData.fid,

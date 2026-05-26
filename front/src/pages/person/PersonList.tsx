@@ -6,7 +6,7 @@ import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import Pagination from "../../components/Pagination";
-import { API_ENDPOINTS } from "../../config/api";
+import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   UserIcon,
   PlusIcon,
@@ -38,6 +38,7 @@ const useDebounce = (value: string, delay: number) => {
 };
 
 export interface Person {
+  uuid: string;
   medicare: string;
   ssn: number;
   first_name: string;
@@ -342,7 +343,7 @@ const PersonList: React.FC = () => {
                 <div className="pt-4 border-t border-gray-100">
                   <div className="flex space-x-2">
                     <Link
-                      to={`/persons/${person.medicare}`}
+                      to={ROUTES.personDetail(person.uuid)}
                       className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
                     >
                       <EyeIcon className="h-3 w-3" />
@@ -351,7 +352,7 @@ const PersonList: React.FC = () => {
                     {user && (
                       <>
                         <Link
-                          to={`/persons/${person.medicare}/edit`}
+                          to={ROUTES.personEdit(person.uuid)}
                           className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
                         >
                           <PencilIcon className="h-3 w-3" />
@@ -405,7 +406,11 @@ const PersonList: React.FC = () => {
               : ""
           }
           itemType="person"
-          deleteEndpoint={`${API_ENDPOINTS.persons}${personToDelete?.medicare}/`}
+          deleteEndpoint={
+            personToDelete
+              ? API_ENDPOINTS.personDetail(personToDelete.uuid)
+              : ""
+          }
           onClose={handleDeleteCancel}
           onDelete={handleDeleteConfirm}
         />

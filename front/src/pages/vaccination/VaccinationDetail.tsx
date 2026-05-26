@@ -20,8 +20,8 @@ interface VaccinationData {
 }
 
 const VaccinationDetail: React.FC = () => {
-  const { ssn, type_id, date } = useParams<{
-    ssn: string;
+  const { person_uuid, type_id, date } = useParams<{
+    person_uuid: string;
     type_id: string;
     date: string;
   }>();
@@ -32,14 +32,14 @@ const VaccinationDetail: React.FC = () => {
 
   useEffect(() => {
     const fetchVaccination = async () => {
-      if (!ssn || !type_id || !date) {
+      if (!person_uuid || !type_id || !date) {
         navigate("/vaccinations");
         return;
       }
 
       try {
         const response = await axios.get(
-          API_ENDPOINTS.vaccinationDetail(ssn, type_id, date),
+          API_ENDPOINTS.vaccinationDetail(person_uuid, type_id, date),
         );
         setVaccination(response.data);
       } catch (error) {
@@ -51,7 +51,7 @@ const VaccinationDetail: React.FC = () => {
     };
 
     fetchVaccination();
-  }, [ssn, type_id, date, navigate]);
+  }, [person_uuid, type_id, date, navigate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -116,7 +116,7 @@ const VaccinationDetail: React.FC = () => {
               </div>
             </div>
             <Link
-              to={ROUTES.vaccinationEdit(ssn!, type_id!, date!)}
+              to={ROUTES.vaccinationEdit(person_uuid!, type_id!, date!)}
               className="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               <PencilSquareIcon className="h-5 w-5 mr-2" />
