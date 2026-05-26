@@ -71,6 +71,7 @@ class PersonListCreateView(generics.ListCreateAPIView):
 class PersonDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
+    lookup_field = "uuid"
 
 
 class EmployeeListCreateView(generics.ListCreateAPIView):
@@ -92,6 +93,9 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
 class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
+    # Lookup Employee via Person.uuid since Employee.person is the OneToOne PK.
+    lookup_field = "person__uuid"
+    lookup_url_kwarg = "uuid"
 
 
 class FacilityListCreateView(generics.ListCreateAPIView):
@@ -150,7 +154,7 @@ class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAP
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
     composite_lookup_map = {
-        "ssn": "person_id",
+        "person_uuid": "person__uuid",
         "date": "date",
         "type_id": "infection_type_id",
     }
@@ -188,7 +192,7 @@ class VaccinationDetailView(
     ).all()
     serializer_class = VaccinationSerializer
     composite_lookup_map = {
-        "ssn": "person_id",
+        "person_uuid": "person__uuid",
         "type_id": "vaccine_type_id",
         "date": "date",
     }
@@ -207,7 +211,7 @@ class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyA
     queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
     composite_lookup_map = {
-        "essn": "employee_id",
+        "person_uuid": "employee__person__uuid",
         "fid": "facility_id",
         "start_date": "start_date",
     }
@@ -226,7 +230,7 @@ class ScheduleDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPI
     queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
     composite_lookup_map = {
-        "essn": "employee_id",
+        "person_uuid": "employee__person__uuid",
         "fid": "facility_id",
         "date": "date",
         "start_time": "start_time",

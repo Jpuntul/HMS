@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
 
@@ -45,8 +47,16 @@ class Person(SoftDeleteModelMixin, models.Model):
     # nullable, but FK(to_field="ssn") rows require non-null values.
     ssn = models.IntegerField(unique=True, null=True, blank=True, db_column="SSN")
 
-    # Medicare is the declared primary key in MySQL.
+    # Medicare is the declared primary key in MySQL. Stored, but never used
+    # in URLs - see `uuid` below for the public identifier.
     medicare = models.CharField(max_length=12, primary_key=True, db_column="Medicare")
+
+    # Opaque public identifier. Used in every URL that historically would have
+    # contained SSN or Medicare. Existing rows were backfilled via MySQL's
+    # UUID() function; new rows get a fresh v4 via the default.
+    uuid = models.UUIDField(
+        unique=True, default=uuid.uuid4, editable=False, db_column="UUID"
+    )
 
     first_name = models.CharField(max_length=30, db_column="FirstName")
     last_name = models.CharField(max_length=30, db_column="LastName")

@@ -51,16 +51,16 @@ urlpatterns = [
         employee_filter_options,
         name="employee-filter-options",
     ),
-    # Person endpoints
+    # Person endpoints (URL identifier is Person.uuid; Medicare/SSN never appear)
     path("persons/", PersonListCreateView.as_view(), name="person-list-create"),
-    path(
-        "persons/<str:pk>/", PersonDetailView.as_view(), name="person-detail"
-    ),  # Medicare is string
-    # Employee endpoints
+    path("persons/<uuid:uuid>/", PersonDetailView.as_view(), name="person-detail"),
+    # Employee endpoints (lookup via Person.uuid through the OneToOne)
     path("employees/", EmployeeListCreateView.as_view(), name="employee-list-create"),
     path(
-        "employees/<int:pk>/", EmployeeDetailView.as_view(), name="employee-detail"
-    ),  # SSN is int
+        "employees/<uuid:uuid>/",
+        EmployeeDetailView.as_view(),
+        name="employee-detail",
+    ),
     # Facility endpoints
     path("facilities/", FacilityListCreateView.as_view(), name="facility-list-create"),
     path(
@@ -88,12 +88,12 @@ urlpatterns = [
         InfectionTypeDetailView.as_view(),
         name="infection-type-detail",
     ),
-    # Infection endpoints (composite PK: ssn + date + type_id)
+    # Infection endpoints (composite PK; URL exposes person.uuid, not SSN)
     path(
         "infections/", InfectionListCreateView.as_view(), name="infection-list-create"
     ),
     path(
-        "infections/<int:ssn>/<str:date>/<int:type_id>/",
+        "infections/<uuid:person_uuid>/<str:date>/<int:type_id>/",
         InfectionDetailView.as_view(),
         name="infection-detail",
     ),
@@ -108,32 +108,32 @@ urlpatterns = [
         VaccineTypeDetailView.as_view(),
         name="vaccine-type-detail",
     ),
-    # Vaccination endpoints (composite PK: ssn + type_id + date)
+    # Vaccination endpoints (composite PK; URL exposes person.uuid, not SSN)
     path(
         "vaccinations/",
         VaccinationListCreateView.as_view(),
         name="vaccination-list-create",
     ),
     path(
-        "vaccinations/<int:ssn>/<int:type_id>/<str:date>/",
+        "vaccinations/<uuid:person_uuid>/<int:type_id>/<str:date>/",
         VaccinationDetailView.as_view(),
         name="vaccination-detail",
     ),
-    # Employment endpoints (composite PK: essn + fid + start_date)
+    # Employment endpoints (composite PK; URL exposes person.uuid, not ESSN)
     path(
         "employments/",
         EmploymentListCreateView.as_view(),
         name="employment-list-create",
     ),
     path(
-        "employments/<int:essn>/<int:fid>/<str:start_date>/",
+        "employments/<uuid:person_uuid>/<int:fid>/<str:start_date>/",
         EmploymentDetailView.as_view(),
         name="employment-detail",
     ),
-    # Schedule endpoints (composite PK: essn + fid + date + start_time)
+    # Schedule endpoints (composite PK; URL exposes person.uuid, not ESSN)
     path("schedules/", ScheduleListCreateView.as_view(), name="schedule-list-create"),
     path(
-        "schedules/<int:essn>/<int:fid>/<str:date>/<str:start_time>/",
+        "schedules/<uuid:person_uuid>/<int:fid>/<str:date>/<str:start_time>/",
         ScheduleDetailView.as_view(),
         name="schedule-detail",
     ),

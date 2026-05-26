@@ -21,6 +21,7 @@ class PersonSerializer(serializers.ModelSerializer):
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
+    uuid = serializers.UUIDField(source="person.uuid", read_only=True)
     ssn = serializers.IntegerField(source="person_id", read_only=True)
     person_name = serializers.SerializerMethodField()
     person_email = serializers.CharField(source="person.email", read_only=True)
@@ -28,7 +29,7 @@ class EmployeeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employee
-        fields = ["ssn", "role", "person_name", "person_email", "person_phone"]
+        fields = ["uuid", "ssn", "role", "person_name", "person_email", "person_phone"]
 
     def get_person_name(self, obj):
         p = obj.person
@@ -75,6 +76,7 @@ class InfectionTypeSerializer(serializers.ModelSerializer):
 
 
 class InfectionSerializer(serializers.ModelSerializer):
+    person_uuid = serializers.UUIDField(source="person.uuid", read_only=True)
     ssn = serializers.IntegerField(source="person_id")
     type_id = serializers.IntegerField(source="infection_type_id")
     person_name = serializers.SerializerMethodField()
@@ -84,7 +86,14 @@ class InfectionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Infection
-        fields = ["ssn", "date", "type_id", "person_name", "infection_type_name"]
+        fields = [
+            "person_uuid",
+            "ssn",
+            "date",
+            "type_id",
+            "person_name",
+            "infection_type_name",
+        ]
 
     def get_person_name(self, obj):
         p = obj.person
@@ -98,6 +107,7 @@ class VaccineTypeSerializer(serializers.ModelSerializer):
 
 
 class VaccinationSerializer(serializers.ModelSerializer):
+    person_uuid = serializers.UUIDField(source="person.uuid", read_only=True)
     ssn = serializers.IntegerField(source="person_id")
     type_id = serializers.IntegerField(source="vaccine_type_id")
     fid = serializers.IntegerField(
@@ -112,6 +122,7 @@ class VaccinationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vaccination
         fields = [
+            "person_uuid",
             "ssn",
             "type_id",
             "date",
@@ -128,6 +139,7 @@ class VaccinationSerializer(serializers.ModelSerializer):
 
 
 class EmploymentSerializer(serializers.ModelSerializer):
+    person_uuid = serializers.UUIDField(source="employee.person.uuid", read_only=True)
     essn = serializers.IntegerField(source="employee_id")
     fid = serializers.IntegerField(source="facility_id")
     employee_name = serializers.SerializerMethodField()
@@ -137,6 +149,7 @@ class EmploymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Employment
         fields = [
+            "person_uuid",
             "essn",
             "fid",
             "start_date",
@@ -154,6 +167,7 @@ class EmploymentSerializer(serializers.ModelSerializer):
 
 
 class ScheduleSerializer(serializers.ModelSerializer):
+    person_uuid = serializers.UUIDField(source="employee.person.uuid", read_only=True)
     essn = serializers.IntegerField(source="employee_id")
     fid = serializers.IntegerField(source="facility_id")
     employee_name = serializers.SerializerMethodField()
@@ -163,6 +177,7 @@ class ScheduleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Schedule
         fields = [
+            "person_uuid",
             "essn",
             "fid",
             "date",
