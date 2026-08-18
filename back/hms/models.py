@@ -199,7 +199,12 @@ class InfectionType(models.Model):
 
 
 class Infection(SoftDeleteModelMixin, models.Model):
-    pk = models.CompositePrimaryKey("person", "date", "infection_type")
+    # Column order must mirror the MySQL PRIMARY index, which is
+    # (SSN, TypeID, Date) - NOT the physical column order (SSN, Date, TypeID).
+    # Declaring (person, date, infection_type) here made Django's key disagree
+    # with the real index, so a leftmost-prefix lookup on (person, date) could
+    # not use it. Vaccination/Employment/Schedule already match their indexes.
+    pk = models.CompositePrimaryKey("person", "infection_type", "date")
     person = models.ForeignKey(
         Person,
         to_field="ssn",
