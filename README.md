@@ -1,6 +1,6 @@
 # 🏥 Healthcare Management System (HMS)
 
-A comprehensive, production-ready healthcare management platform with **hybrid authentication**, **admin-only registration**, and **environment-based configuration**. Browse healthcare data publicly, authenticate for modifications.
+A healthcare management platform built on Django REST Framework and React, with **JWT authentication on every endpoint**, **admin-only registration**, and **environment-based configuration**. No patient data is reachable without a valid token.
 
 ## ✨ Key Features
 
@@ -26,7 +26,7 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 - **Environment Configuration**: `.env` files for both frontend and backend
 - **Auto-Port Detection**: Backend automatically uses PORT from .env
 - **Centralized API Config**: Single source of truth for all API endpoints
-- **Pre-commit Hooks**: 13 quality checks (flake8, isort, ESLint, TypeScript, prettier, black)
+- **Pre-commit Hooks**: 13 quality checks (flake8, isort, ESLint, TypeScript, prettier, black), also enforced in CI
 - **Smooth Search UX**: Debounced search without input focus loss
 - **Responsive Design**: Mobile-first design with Tailwind CSS
 
@@ -36,14 +36,13 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 
 - **Django 5.2** - Web framework (uses `models.CompositePrimaryKey` for the join tables)
 - **Django REST Framework** - RESTful API
-- **MySQL** - Production database
-- **SQLite** - Development database option
+- **MySQL 8.0+** - The database. Required, not optional: the schema uses MySQL `enum` columns and the `Persons.UUID` backfill relies on MySQL's `UUID()`.
 - **python-dotenv** - Environment variable management
 - **JWT Authentication** - access + refresh tokens via `djangorestframework-simplejwt`
 
 ### Frontend
 
-- **React 19.1.1** - UI library with new compiler
+- **React 19.1.1** - UI library
 - **TypeScript** - Type safety
 - **Vite** - Lightning-fast build tool
 - **Tailwind CSS** - Utility-first styling
@@ -64,9 +63,9 @@ A comprehensive, production-ready healthcare management platform with **hybrid a
 
 ### Prerequisites
 
-- **Python 3.8+** (recommended: 3.11+)
+- **Python 3.13** (matches CI)
 - **Node.js 16+** (recommended: 18+)
-- **MySQL 8.0+** (or use SQLite for development)
+- **MySQL 8.0+**
 - **Git**
 
 ### Installation
@@ -122,26 +121,23 @@ npm run dev
 
 ### Authentication Flow
 
-#### 🔍 Public Access (No Login Required)
+#### 🔒 No Public Access
 
-Browse and view all data:
-
-- ✅ 447+ patient records with demographics and medical history
-- ✅ 303+ healthcare staff members with roles and departments
-- ✅ 11+ medical facilities with capacity and services
-- ✅ Infection tracking records
-- ✅ Vaccination history
-- ✅ Employee schedules
-- ✅ Analytics dashboard with charts
+There is no anonymous read tier. Every API endpoint returns **401** without a
+valid Bearer token — including the analytics aggregates, which leak facility
+and demographic structure. Unauthenticated requests to any frontend route
+bounce to `/login`.
 
 #### ✏️ Authenticated Actions (Staff Login Required)
 
-Modify data with token authentication:
+Log in to read or modify anything:
 
-- ✅ Add new patients, staff, facilities, records
-- ✅ Edit existing information
-- ✅ Delete outdated or incorrect data
-- ✅ Full CRUD operations on all entities
+- ✅ 447+ patient records with demographics and medical history
+- ✅ 303+ healthcare staff members with roles
+- ✅ 11+ medical facilities with capacity and services
+- ✅ Infection tracking, vaccination history, employee schedules
+- ✅ Analytics dashboard with charts
+- ✅ Full CRUD on all entities
 
 #### 🔐 Admin-Only Actions (Staff Permission Required)
 
@@ -153,7 +149,6 @@ Restricted to administrators:
 
 **Smart UI**: Buttons dynamically display:
 
-- "Login to Add/Edit" - when authentication needed
 - "Register User" - visible only to admin staff
 - Login page shows "Staff Login" to clarify purpose
 
@@ -202,7 +197,11 @@ Automatic code quality enforcement on every commit:
 
 - **Centralized Config**: All endpoints in `front/src/config/api.ts`
 - **No Hardcoded URLs**: Environment-based configuration throughout
-- **Token Authentication**: DRF opaque tokens for authenticated requests
+- **JWT Authentication**: short-lived Bearer access tokens with rotating
+  refresh, applied globally via an axios interceptor. The legacy DRF opaque
+  tokens were removed and are no longer accepted.
+- **PII-free URLs**: every path identifies a person by `Person.uuid` — SSN and
+  Medicare numbers never appear in a URL, browser history, or access log
 
 ## 🤝 Contributing
 
