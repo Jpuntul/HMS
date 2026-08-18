@@ -63,7 +63,6 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework.authtoken",
     "corsheaders",
     "django_filters",
     "hms",
@@ -163,6 +162,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
+# Destination for `manage.py collectstatic`. Without this, collectstatic errors
+# out and there is no deployment path - the Django admin and the DRF browsable
+# API both need their assets collected in production.
+# Already covered by .gitignore (`staticfiles/`).
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
@@ -191,16 +196,26 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
 }
 
-# SimpleJWT settings. Short-lived access tokens force regular refresh; refresh
-# tokens are rotated and blacklisted on use so a stolen refresh can only be
-# used once before invalidation.
+# SimpleJWT settings. Short-lived access tokens force regular refresh.
+#
+# IMPORTANT - what rotation does and does not buy us:
+# `ROTATE_REFRESH_TOKENS` issues a NEW refresh token on each refresh, but with
+# `BLACKLIST_AFTER_ROTATION = False` the OLD refresh token stays valid for its
+# full REFRESH_TOKEN_LIFETIME. Rotation alone therefore does NOT invalidate a
+# stolen refresh token - an attacker holding a copy can keep using it for up to
+# a day, in parallel with the legitimate user.
+#
+# Accepted deliberately for now (see notes/AUTH_FOUNDATION_2026-05-25.md); the
+# fix is to install `rest_framework_simplejwt.token_blacklist` in
+# INSTALLED_APPS, migrate, and flip the flag below to True.
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": False,  # blacklist app not installed by default
+    # Requires the token_blacklist app; see the note above before changing.
+    "BLACKLIST_AFTER_ROTATION": False,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",
@@ -227,6 +242,31 @@ CORS_ALLOW_CREDENTIALS = True
 # explicitly in .env if a deployment needs to.
 SESSION_COOKIE_SECURE = _env_bool("SESSION_COOKIE_SECURE", not DEBUG)
 CSRF_COOKIE_SECURE = _env_bool("CSRF_COOKIE_SECURE", not DEBUG)
-SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
+
+# NOTE: `SECURE_BROWSER_XSS_FILTER` was removed. It sets the `X-XSS-Protection`
+# header, which Chrome/Edge dropped entirely and Firefox never implemented. It
+# protected nothing while reading like it did. A Content-Security-Policy is the
+# real replacement (not yet configured - needs a pass to inventory inline
+# styles/scripts first).
+
+# Transport security. Both default ON when DEBUG=False and are overridable via
+# .env for deployments that terminate TLS upstream (a proxy that already
+# redirects, or a health check that must answer over HTTP).
+SECURE_SSL_REDIRECT = _env_bool("SECURE_SSL_REDIRECT", not DEBUG)
+
+# HSTS: tells browsers to refuse plain HTTP for this domain. Starts at 1 hour
+# rather than the usual 1 year - a wrong HSTS policy is cached by browsers and
+# effectively irreversible for its duration, so raise this deliberately once
+# HTTPS is confirmed working end to end (target: 31536000 = 1 year).
+SECURE_HSTS_SECONDS = int(os.getenv("SECURE_HSTS_SECONDS", 3600 if not DEBUG else 0))
+SECURE_HSTS_INCLUDE_SUBDOMAINS = _env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", not DEBUG)
+# Preload stays OFF: submitting to the browser preload list is a one-way door.
+SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", False)
+
+# Trust the proxy's forwarded-proto header so SECURE_SSL_REDIRECT doesn't cause
+# a redirect loop behind a TLS-terminating load balancer. Only enable when a
+# proxy you control actually sets this header.
+if _env_bool("USE_X_FORWARDED_PROTO", False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
