@@ -20,6 +20,7 @@ import SearchResultsHeader from "../../components/SearchResultsHeader";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import { useAuth } from "../../contexts/AuthContext";
+import { useDebounce } from "../../hooks/useDebounce";
 
 interface Facility {
   fid: number;
@@ -52,23 +53,6 @@ const FacilityList: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
-
-  // Custom hook for debouncing search term
-  const useDebounce = (value: string, delay: number) => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-
-    useEffect(() => {
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
-      }, delay);
-
-      return () => {
-        clearTimeout(handler);
-      };
-    }, [value, delay]);
-
-    return debouncedValue;
-  };
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 

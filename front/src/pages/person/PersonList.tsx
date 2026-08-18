@@ -19,23 +19,7 @@ import {
   TrashIcon,
   EyeIcon,
 } from "@heroicons/react/24/outline";
-
-// Custom debounce hook
-const useDebounce = (value: string, delay: number) => {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
+import { useDebounce } from "../../hooks/useDebounce";
 
 export interface Person {
   uuid: string;

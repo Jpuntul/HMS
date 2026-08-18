@@ -14,6 +14,7 @@ import {
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { useDebounce } from "../../hooks/useDebounce";
 
 interface Infection {
   person_uuid: string;
@@ -39,23 +40,6 @@ const InfectionList: React.FC = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
-
-  // Custom hook for debouncing search term
-  const useDebounce = (value: string, delay: number) => {
-    const [debouncedValue, setDebouncedValue] = useState(value);
-
-    useEffect(() => {
-      const handler = setTimeout(() => {
-        setDebouncedValue(value);
-      }, delay);
-
-      return () => {
-        clearTimeout(handler);
-      };
-    }, [value, delay]);
-
-    return debouncedValue;
-  };
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
