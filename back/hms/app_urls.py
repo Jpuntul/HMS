@@ -2,13 +2,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .analytics import dashboard_stats, facility_analytics, person_demographics
-from .auth_views import (
-    LoginView,
-    check_auth_view,
-    logout_view,
-    profile_view,
-    register_view,
-)
+from .auth_views import LoginView, logout_view, profile_view, register_view
 from .views import (
     EmployeeDetailView,
     EmployeeListCreateView,
@@ -41,7 +35,6 @@ urlpatterns = [
     path("auth/logout/", logout_view, name="logout"),
     path("auth/profile/", profile_view, name="profile"),
     path("auth/register/", register_view, name="register"),
-    path("auth/check/", check_auth_view, name="check-auth"),
     # Filter options endpoints (must come before detail endpoints)
     path(
         "persons/filter-options/", person_filter_options, name="person-filter-options"

@@ -10,11 +10,7 @@ import json
 
 from django.contrib.auth.models import User
 from rest_framework import status
-from rest_framework.decorators import (
-    api_view,
-    authentication_classes,
-    permission_classes,
-)
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
@@ -126,14 +122,6 @@ def register_view(request):
         )
 
 
-@api_view(["GET"])
-@authentication_classes([])
-@permission_classes([AllowAny])
-def check_auth_view(request):
-    """Cheap unauthenticated probe used by the frontend on app load.
-
-    Always returns {authenticated: false} when called without a valid token.
-    The real way to learn 'am I logged in' is to call /api/auth/profile/ with
-    a Bearer access token.
-    """
-    return Response({"authenticated": False}, status=status.HTTP_200_OK)
+# `check_auth_view` was removed. It returned a hardcoded {authenticated: false}
+# regardless of credentials, and nothing in the frontend called it. The real
+# "am I logged in" check is GET /api/auth/profile/ with a Bearer token.

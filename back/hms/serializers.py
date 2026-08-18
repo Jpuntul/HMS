@@ -17,7 +17,25 @@ from .models import (
 class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
-        fields = "__all__"
+        # Enumerated deliberately, NOT "__all__". `Persons` is a PHI table, so
+        # any column added to it would otherwise be published by this endpoint
+        # the moment it exists. Adding a field here has to be a decision.
+        #
+        # `ssn` and `medicare` remain exposed in the body for now - staff use
+        # them for record recognition. Stripping/gating them is tracked in
+        # notes/UUID_URLS_2026-05-26.md ("Response-body PII").
+        fields = [
+            "uuid",
+            "medicare",
+            "ssn",
+            "first_name",
+            "last_name",
+            "dob",
+            "telephone",
+            "citizenship",
+            "email",
+            "occupation",
+        ]
 
 
 class EmployeeSerializer(serializers.ModelSerializer):
