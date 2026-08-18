@@ -144,7 +144,14 @@ class InfectionTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InfectionListCreateView(generics.ListCreateAPIView):
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    # SearchFilter was missing: the UI sends `?search=` and DRF silently
+    # dropped it, returning every row as if the term had matched everything.
+    filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
+    search_fields = [
+        "person__first_name",
+        "person__last_name",
+        "infection_type__type_name",
+    ]
     filterset_fields = ["person", "infection_type", "date"]
     ordering_fields = ["date", "person"]
     ordering = ["-date"]
@@ -178,7 +185,14 @@ class VaccinationListCreateView(generics.ListCreateAPIView):
         "person", "vaccine_type", "facility"
     ).all()
     serializer_class = VaccinationSerializer
-    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    # SearchFilter was missing here too - same silent-no-op as Infection.
+    filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
+    search_fields = [
+        "person__first_name",
+        "person__last_name",
+        "vaccine_type__type_name",
+        "facility__name",
+    ]
     filterset_fields = ["person", "vaccine_type", "facility", "no_of_dose"]
     ordering_fields = ["date", "person"]
     ordering = ["-date"]
