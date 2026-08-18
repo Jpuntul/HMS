@@ -1,11 +1,20 @@
-from datetime import date, datetime, timedelta
+from datetime import date
 
-from django.db.models import Count, Q
-from django.db.models.functions import Extract
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import TruncMonth
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Employee, Facility, Person
+from .models import Employee, Facility, Person, Vaccination
+
+
+def _years_ago(years: int, today: date | None = None) -> date:
+    """Date exactly `years` before today, leap-day safe (Feb 29 -> Feb 28)."""
+    today = today or date.today()
+    try:
+        return today.replace(year=today.year - years)
+    except ValueError:
+        return today.replace(year=today.year - years, day=28)
 
 
 @api_view(["GET"])
@@ -17,8 +26,8 @@ def dashboard_stats(request):
     total_employees = Employee.objects.count()
     total_facilities = Facility.objects.count()
 
-    # Calculate capacity
-    total_capacity = sum(facility.capacity or 0 for facility in Facility.objects.all())
+    # Capacity summed in SQL rather than by loading every Facility row.
+    total_capacity = Facility.objects.aggregate(total=Sum("capacity"))["total"] or 0
 
     # Employee role distribution
     employee_roles = (
@@ -115,30 +124,25 @@ def facility_analytics(request):
 
 @api_view(["GET"])
 def person_demographics(request):
-    """Get person demographics analytics"""
+    """Person demographics analytics.
 
-    # Age distribution (approximate based on today's date)
-    current_year = datetime.now().year
+    Age buckets are computed in SQL from date-of-birth boundaries rather than
+    by subtracting birth years in Python. The old approach counted someone born
+    in December as a full year older for most of the year.
+    """
+    # Bucket edges as concrete dates: a person is 19+ exactly when their DOB is
+    # on or before today-minus-19-years.
+    d19, d31, d51, d71 = (_years_ago(n) for n in (19, 31, 51, 71))
 
-    # Get birth years and calculate age groups (using 'dob' field name)
-    persons_with_birth_year = Person.objects.annotate(
-        birth_year=Extract("dob", "year")
-    ).filter(birth_year__isnull=False)
-
-    age_groups = {"0-18": 0, "19-30": 0, "31-50": 0, "51-70": 0, "70+": 0}
-
-    for person in persons_with_birth_year:
-        age = current_year - person.birth_year
-        if age <= 18:
-            age_groups["0-18"] += 1
-        elif age <= 30:
-            age_groups["19-30"] += 1
-        elif age <= 50:
-            age_groups["31-50"] += 1
-        elif age <= 70:
-            age_groups["51-70"] += 1
-        else:
-            age_groups["70+"] += 1
+    age_distribution = Person.objects.filter(dob__isnull=False).aggregate(
+        **{
+            "0-18": Count("pk", filter=Q(dob__gt=d19)),
+            "19-30": Count("pk", filter=Q(dob__lte=d19, dob__gt=d31)),
+            "31-50": Count("pk", filter=Q(dob__lte=d31, dob__gt=d51)),
+            "51-70": Count("pk", filter=Q(dob__lte=d51, dob__gt=d71)),
+            "70+": Count("pk", filter=Q(dob__lte=d71)),
+        }
+    )
 
     # Occupation distribution (top 10)
     occupation_distribution = (
@@ -149,22 +153,35 @@ def person_demographics(request):
         .order_by("-count")[:10]
     )
 
-    # Monthly registration trend (last 12 months)
-    # Note: This is simulated since we don't have actual registration dates
-    monthly_trend = []
-    for i in range(12):
-        month_date = datetime.now() - timedelta(days=30 * i)
-        # Simulate data based on person count
-        count = max(1, Person.objects.count() // 12 + (i % 3))
-        monthly_trend.append({"month": month_date.strftime("%b %Y"), "count": count})
-
-    monthly_trend.reverse()
+    # Vaccinations per month, most recent 12 months that actually contain data.
+    #
+    # This replaces a "monthly registration trend" that was fabricated - it
+    # divided the person count by 12 and added `i % 3` for texture. `Persons`
+    # has no registration/created timestamp, so that series could not be built
+    # from real data at all. `Vaccinations.Date` is a real recorded date, so
+    # the chart now reports something that happened.
+    #
+    # Anchored to the newest row rather than to today: this dataset ends in
+    # 2024, so a rolling window from `date.today()` would always be empty.
+    monthly_trend = [
+        {"month": row["month"].strftime("%b %Y"), "count": row["count"]}
+        for row in reversed(
+            list(
+                Vaccination.objects.filter(date__isnull=False)
+                .annotate(month=TruncMonth("date"))
+                .values("month")
+                .annotate(count=Count("pk"))
+                .order_by("-month")[:12]
+            )
+        )
+    ]
 
     return Response(
         {
-            "age_distribution": age_groups,
+            "age_distribution": age_distribution,
             "occupation_distribution": list(occupation_distribution),
             "monthly_trend": monthly_trend,
+            "monthly_trend_metric": "vaccinations",
             "total_persons": Person.objects.count(),
         }
     )
