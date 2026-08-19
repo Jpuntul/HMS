@@ -1,0 +1,44 @@
+# Keep the build context small and, more importantly, keep secrets and local
+# state out of the image.
+
+# Secrets — never bake these into a layer
+**/.env
+**/.env.*
+!**/.env.example
+
+# Local databases and virtualenvs
+**/db.sqlite3
+**/db.sqlite3-journal
+.venv/
+venv/
+env/
+
+# Python bytecode / caches
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+
+# Collected static is produced by the build, not copied in
+back/staticfiles/
+
+# Frontend: deployed separately to a static host, not served by Django
+front/
+node_modules/
+
+# Local-only engineering notes
+notes/
+
+# VCS, CI, tooling
+.git/
+.github/
+.gitignore
+.pre-commit-config.yaml
+Dockerfile
+.dockerignore
+
+# Editors / OS
+.vscode/
+.idea/
+**/.DS_Store
