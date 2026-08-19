@@ -3,6 +3,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .analytics import dashboard_stats, facility_analytics, person_demographics
 from .auth_views import LoginView, logout_view, profile_view, register_view
+from .health import health, health_ready
 from .views import (
     EmployeeDetailView,
     EmployeeListCreateView,
@@ -29,6 +30,9 @@ from .views import (
 )
 
 urlpatterns = [
+    # Health probes. Unauthenticated by design - see hms/health.py.
+    path("health/", health, name="health"),
+    path("health/ready/", health_ready, name="health-ready"),
     # Authentication endpoints (JWT)
     path("auth/login/", LoginView.as_view(), name="login"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token-refresh"),
