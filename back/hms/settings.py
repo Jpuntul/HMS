@@ -71,6 +71,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    # WhiteNoise must sit directly after SecurityMiddleware and before
+    # everything else: it short-circuits static-file requests so they never
+    # touch session, auth, or CSRF handling.
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -167,6 +171,23 @@ STATIC_URL = "static/"
 # API both need their assets collected in production.
 # Already covered by .gitignore (`staticfiles/`).
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Django 4.2+ configures storage backends through STORAGES, not the older
+# STATICFILES_STORAGE string.
+#
+# CompressedManifestStaticFilesStorage hashes each filename and writes a
+# manifest, so assets can be cached forever and a deploy busts the cache
+# automatically. The manifest is built by collectstatic - if it is missing at
+# runtime, every {% static %} lookup raises, which is why the Dockerfile runs
+# collectstatic at build time.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -270,3 +291,78 @@ SECURE_HSTS_PRELOAD = _env_bool("SECURE_HSTS_PRELOAD", False)
 # proxy you control actually sets this header.
 if _env_bool("USE_X_FORWARDED_PROTO", False):
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+
+# Logging.
+#
+# Everything goes to stdout, nothing to files. On a container platform the
+# runtime collects stdout and does the rotating/shipping; writing our own log
+# files would put them on a disk that disappears when the container restarts.
+LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG" if DEBUG else "INFO").upper()
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {name} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": LOG_LEVEL,
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+        # 5xx responses are logged with a full traceback; 4xx stay quiet.
+        "django.request": {
+            "handlers": ["console"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+        # Set to DEBUG locally to see every SQL query the ORM emits - useful
+        # for spotting N+1s. Far too noisy to leave on in production.
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": os.getenv("SQL_LOG_LEVEL", "WARNING").upper(),
+            "propagate": False,
+        },
+        "hms": {
+            "handlers": ["console"],
+            "level": LOG_LEVEL,
+            "propagate": False,
+        },
+    },
+}
+
+
+# Error tracking (Sentry).
+#
+# Entirely optional: with no SENTRY_DSN set this block does nothing, so local
+# development and CI need no account and no network access.
+SENTRY_DSN = os.getenv("SENTRY_DSN", "")
+if SENTRY_DSN:
+    import sentry_sdk  # noqa: E402
+
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=os.getenv("SENTRY_ENVIRONMENT", "production"),
+        # Fraction of requests traced for performance data. Sampling exists
+        # because tracing every request costs both money and latency.
+        traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        # send_default_pii stays OFF deliberately. Turning it on would attach
+        # usernames, IP addresses, cookies and request bodies to every event -
+        # and this application's request bodies contain patient data.
+        send_default_pii=False,
+    )
