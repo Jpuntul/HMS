@@ -174,6 +174,79 @@ VITE_API_BASE_URL=http://localhost:8001  # Backend URL
 VITE_PORT=5173                            # Dev server port
 ```
 
+## 🚢 Deployment
+
+The API ships as a container; the React app is a static bundle that deploys
+separately. Two hosts, because they are two different kinds of thing.
+
+> ⚠️ **Deploy the synthetic dataset only.** A hobby-tier host has no BAA, no
+> compliance review, and no audited access controls. Never put real patient
+> data on one.
+
+### 1. The API
+
+```bash
+# Build and run locally exactly as production will
+docker build -t hms-api .
+
+docker run --rm -p 8000:8000 \
+  -e DEBUG=False \
+  -e SECRET_KEY="$(python -c 'from django.core.management.utils import get_random_secret_key as k; print(k())')" \
+  -e ALLOWED_HOSTS="localhost,127.0.0.1" \
+  -e CORS_ALLOWED_ORIGINS="http://localhost:5173" \
+  -e SECURE_SSL_REDIRECT=False \
+  -e DB_HOST=host.docker.internal \
+  -e DB_NAME=hms_db -e DB_USER=root -e DB_PASSWORD=... \
+  hms-api
+
+curl localhost:8000/api/health/        # {"status":"ok"}
+curl localhost:8000/api/health/ready/  # also checks the database
+```
+
+To deploy (Railway is the reference target — it offers managed **MySQL**, which
+this schema requires; Render and Fly lead with Postgres):
+
+1. Point the platform at this repo. It will detect the `Dockerfile`.
+2. Add a **MySQL** database and load the schema into it.
+3. Set the environment variables below.
+4. Run `python manage.py migrate` **once** as a release/one-off command — it
+   creates Django's own auth and session tables. It does _not_ create the
+   domain tables: those are `managed = False` and come from your schema.
+5. Point the platform's health check at `/api/health/`.
+
+| Variable                                                      | Value                                           |
+| ------------------------------------------------------------- | ----------------------------------------------- |
+| `DEBUG`                                                       | `False`                                         |
+| `SECRET_KEY`                                                  | generate a fresh one — never reuse the dev key  |
+| `ALLOWED_HOSTS`                                               | your API hostname                               |
+| `CORS_ALLOWED_ORIGINS`                                        | your frontend URL, e.g. `https://hms.pages.dev` |
+| `USE_X_FORWARDED_PROTO`                                       | `True` — the platform terminates TLS            |
+| `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_PORT` | from the managed database                       |
+| `SENTRY_DSN`                                                  | optional; leave empty to disable error tracking |
+
+`USE_X_FORWARDED_PROTO=True` matters: without it `SECURE_SSL_REDIRECT` sees
+plain `http` on every proxied request and redirects forever.
+
+### 2. The frontend
+
+```bash
+cd front
+VITE_API_BASE_URL=https://your-api-host npm run build
+# deploy front/dist to Cloudflare Pages, Netlify, or any static host
+```
+
+`VITE_*` variables are baked in at **build** time, not read at runtime — so
+changing the API URL means rebuilding, not just restarting.
+
+### 3. Confirm it works
+
+- `GET /api/health/` → `200`
+- `GET /api/health/ready/` → `200` (`503` means the database is unreachable)
+- `GET /api/persons/` → `401` without a token — this is correct
+- Point an uptime monitor (UptimeRobot, BetterStack) at `/api/health/ready/`
+- Verify the host's automated backups are switched on. An unverified backup is
+  not a backup.
+
 ## 📊 Sample Data
 
 The system comes with realistic healthcare data:
