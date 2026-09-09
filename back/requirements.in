@@ -1,0 +1,28 @@
+# Source file for requirements.txt. Loose constraints here express intent
+# ("Django 5.2.x"); requirements.txt is the fully pinned, resolved lock -
+# generated, not hand-edited. To pick up new versions within these bounds:
+#   .venv/bin/pip install pip-tools
+#   .venv/bin/pip-compile requirements.in --output-file=requirements.txt
+# then `pip install -r requirements.txt` to sync your venv to the new lock.
+Django>=5.2,<5.3
+djangorestframework>=3.15
+djangorestframework-simplejwt>=5.3
+django-cors-headers>=4.4
+django-filter>=24.3
+python-dotenv
+mysqlclient>=2.2
+
+# --- Production serving ---
+# runserver is a development server and must never face the internet.
+gunicorn>=23.0
+# Serves admin + DRF browsable-API assets from the app process, so no separate
+# web server is needed at this scale.
+whitenoise>=6.7
+
+# --- Observability ---
+# Inert unless SENTRY_DSN is set, so local dev and CI need no account.
+sentry-sdk[django]>=2.0
+
+# --- Dev tooling ---
+pre-commit
+black

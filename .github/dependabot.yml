@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # back/requirements.txt is pip-compile-generated (see back/requirements.in)
+  # - Dependabot updates the pinned versions directly, same as any other
+  # pip project. Regenerating via pip-compile isn't required for a
+  # Dependabot PR, only for a manual version bump within requirements.in's
+  # own loose bounds.
+  - package-ecosystem: "pip"
+    directory: "/back"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "npm"
+    directory: "/front"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
