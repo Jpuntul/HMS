@@ -1,10 +1,12 @@
 # Notes Index
 
 Six dated engineering notes from one week's security-hardening pass,
-published as-is. Additional internal engineering notes exist from earlier
-work on this repo and are kept private for now — some describe still-open
-findings that aren't ready for a public read; see "Publishing scope" below
-rather than treating this as the full history.
+published as-is. Older notes from earlier work on this repo live in
+`notes/private/` (gitignored wholesale, untracked) — some describe
+still-open findings that aren't ready for a public read; see "Publishing
+scope" below rather than treating this as the full history. New notes
+default to published (write directly to `notes/`); use `notes/private/`
+deliberately for drafts or still-open findings, not the other way around.
 
 Status follows the ADR convention: **Current** (nothing has changed since
 written) or **Declined** (a real decision not to build something, recorded

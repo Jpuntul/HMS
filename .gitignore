@@ -84,18 +84,10 @@ jspm_packages/
 .env.test.local
 .env.production.local
 
-# Local-only engineering notes — private by default, published one file at
-# a time as a deliberate exception (same default-deny shape as auth in
-# settings.py: deny, then an explicit, visible opt-out per file). See
-# notes/INDEX.md for what's published and why.
-notes/*
-!notes/INDEX.md
-!notes/LOGIN_SECURITY_HARDENING_2026-09-08.md
-!notes/RBAC_STAFF_WRITE_GATE_2026-09-09.md
-!notes/AUDIT_LOG_2026-09-09.md
-!notes/CSP_2026-09-09.md
-!notes/DEPENDENCY_LOCK_2026-09-09.md
-!notes/DECLINED_2026-09-09.md
+# notes/ is published by default (see notes/INDEX.md). Drafts and notes
+# describing still-open, unresolved findings go in notes/private/ instead -
+# nothing there is tracked, no per-file gitignore entry needed either way.
+notes/private/
 
 # Build outputs
 /front/build/

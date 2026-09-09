@@ -7,8 +7,12 @@ A healthcare management platform built on Django REST Framework and React, with 
 ### 🔐 Security & Authentication
 
 - **Auth Required**: Every API endpoint requires authentication — no public PHI browsing
-- **JWT Bearer Tokens**: Short-lived access tokens (15 min) + rotating refresh tokens (1 day) via `djangorestframework-simplejwt`
-- **Admin-Only Registration**: Staff registration restricted to administrators
+- **JWT Bearer Tokens**: Short-lived access tokens (5 min) + rotating refresh tokens (1 day) via `djangorestframework-simplejwt`, blacklisted on rotation — a stolen refresh token is usable exactly once
+- **Login Throttling**: rate-limited (`5/min` per client) against brute force / credential stuffing
+- **Role Gate on Writes**: any authenticated user may read; only staff accounts may create, update, or delete
+- **Audit Logging**: every create/update/delete records who did it, to what, and when
+- **Admin-Only Registration**: Staff registration restricted to administrators, with real password-strength validation enforced
+- **Content-Security-Policy**: a strict CSP (no `unsafe-inline`, verified against the real admin/browsable-API/SPA pages) on both the API and the frontend
 - **Cookie + Header Hardening**: `SESSION_COOKIE_SECURE`, `CSRF_COOKIE_SECURE`, `X_FRAME_OPTIONS=DENY` auto-enabled in non-DEBUG
 
 ### 📊 Healthcare Management
@@ -128,22 +132,38 @@ valid Bearer token — including the analytics aggregates, which leak facility
 and demographic structure. Unauthenticated requests to any frontend route
 bounce to `/login`.
 
-#### ✏️ Authenticated Actions (Staff Login Required)
+#### 👀 Authenticated Reads (Any Logged-In Account)
 
-Log in to read or modify anything:
+Log in and every record is readable — this tier does not yet distinguish
+a nurse from a receptionist from a doctor (see the RBAC note below):
 
 - ✅ 447+ patient records with demographics and medical history
 - ✅ 303+ healthcare staff members with roles
 - ✅ 11+ medical facilities with capacity and services
 - ✅ Infection tracking, vaccination history, employee schedules
 - ✅ Analytics dashboard with charts
-- ✅ Full CRUD on all entities
+
+#### ✏️ Writes (Staff Accounts Only)
+
+Creating, editing, or deleting anything requires `is_staff` — a logged-in
+account that isn't staff can read every page above but gets a real
+`403 Forbidden` (not a silent failure) on any write:
+
+- ✅ Full CRUD on all entities, for staff accounts
+- Every write is recorded in an audit log (actor, action, record, timestamp)
+
+This is a first, deliberately coarse RBAC pass — staff vs. everyone,
+not yet role-specific (a nurse and an administrator currently have the
+same write access once both are staff). See
+[`notes/RBAC_STAFF_WRITE_GATE_2026-09-09.md`](notes/RBAC_STAFF_WRITE_GATE_2026-09-09.md).
+`notes/` is private by default (see `notes/INDEX.md`) — this file and a
+handful of others from the same pass are published exceptions.
 
 #### 🔐 Admin-Only Actions (Staff Permission Required)
 
 Restricted to administrators:
 
-- ✅ **Register new staff users** (admin-only feature)
+- ✅ **Register new staff users** (admin-only feature, with server-side password-strength validation)
 - ✅ Access admin panel
 - ✅ Manage user permissions
 
@@ -214,15 +234,16 @@ this schema requires; Render and Fly lead with Postgres):
    domain tables: those are `managed = False` and come from your schema.
 5. Point the platform's health check at `/api/health/`.
 
-| Variable                                                      | Value                                           |
-| ------------------------------------------------------------- | ----------------------------------------------- |
-| `DEBUG`                                                       | `False`                                         |
-| `SECRET_KEY`                                                  | generate a fresh one — never reuse the dev key  |
-| `ALLOWED_HOSTS`                                               | your API hostname                               |
-| `CORS_ALLOWED_ORIGINS`                                        | your frontend URL, e.g. `https://hms.pages.dev` |
-| `USE_X_FORWARDED_PROTO`                                       | `True` — the platform terminates TLS            |
-| `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_PORT` | from the managed database                       |
-| `SENTRY_DSN`                                                  | optional; leave empty to disable error tracking |
+| Variable                                                      | Value                                                                                                                                                                         |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DEBUG`                                                       | `False`                                                                                                                                                                       |
+| `SECRET_KEY`                                                  | generate a fresh one — never reuse the dev key                                                                                                                                |
+| `ALLOWED_HOSTS`                                               | your API hostname                                                                                                                                                             |
+| `CORS_ALLOWED_ORIGINS`                                        | your frontend URL, e.g. `https://hms.pages.dev`                                                                                                                               |
+| `USE_X_FORWARDED_PROTO`                                       | `True` — the platform terminates TLS                                                                                                                                          |
+| `DB_HOST` / `DB_NAME` / `DB_USER` / `DB_PASSWORD` / `DB_PORT` | from the managed database                                                                                                                                                     |
+| `SENTRY_DSN`                                                  | optional; leave empty to disable error tracking                                                                                                                               |
+| `NUM_PROXIES`                                                 | number of trusted proxies in front of the app (default `1`) — verify against the real platform, or the login-attempt throttle can be bypassed via a spoofed `X-Forwarded-For` |
 
 `USE_X_FORWARDED_PROTO=True` matters: without it `SECURE_SSL_REDIRECT` sees
 plain `http` on every proxied request and redirects forever.
@@ -237,6 +258,13 @@ VITE_API_BASE_URL=https://your-api-host npm run build
 
 `VITE_*` variables are baked in at **build** time, not read at runtime — so
 changing the API URL means rebuilding, not just restarting.
+
+**Before deploying**, edit `front/public/_headers` and replace
+`<API_ORIGIN>` with the real deployed API origin — it sets this app's
+Content-Security-Policy, and `connect-src` can't be filled in automatically
+from `VITE_API_BASE_URL` (a static header file can't read a build-time env
+var). Forgetting this fails closed: the SPA simply can't reach the API,
+not a silent security gap.
 
 ### 3. Confirm it works
 
@@ -270,11 +298,18 @@ Automatic code quality enforcement on every commit:
 
 - **Centralized Config**: All endpoints in `front/src/config/api.ts`
 - **No Hardcoded URLs**: Environment-based configuration throughout
-- **JWT Authentication**: short-lived Bearer access tokens with rotating
-  refresh, applied globally via an axios interceptor. The legacy DRF opaque
-  tokens were removed and are no longer accepted.
+- **JWT Authentication**: short-lived (5 min) Bearer access tokens with
+  rotating, blacklisted refresh tokens, applied globally via an axios
+  interceptor. The legacy DRF opaque tokens were removed and are no longer
+  accepted.
 - **PII-free URLs**: every path identifies a person by `Person.uuid` — SSN and
   Medicare numbers never appear in a URL, browser history, or access log
+- **Referrer-Policy: strict-origin-when-cross-origin**: the browser-level
+  guarantee behind the PII-free-URL claim above — without it, a permissive
+  referrer policy could leak the current URL to any allowed cross-origin
+  request regardless of what the URL itself contains
+- **Audit trail**: every create/update/delete is logged with the acting user,
+  the model, the record, and a timestamp — queryable via `AuditLogEntry`
 
 ## 🤝 Contributing
 
