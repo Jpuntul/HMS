@@ -1,7 +1,58 @@
 import uuid
 
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+
+class AuditLogEntry(models.Model):
+    """Who did what to which record, and when.
+
+    The one Django-owned (managed=True) model in this file - everything
+    else here describes a table Django doesn't own. This one is new and is
+    Django's to create, alter, and migrate normally.
+
+    Exists because soft delete alone answers "is this row recoverable?" but
+    not "who changed it and when" - a real gap on tables holding PHI-shaped
+    data. Deliberately coarse: one row per write (create/update/delete), no
+    field-level diff. `object_pk` is a CharField rather than a real FK
+    because several tracked models (Infection, Vaccination, Employment,
+    Schedule) use CompositePrimaryKey - there is no single scalar PK to
+    reference uniformly, so this stores str(instance.pk) instead.
+    """
+
+    ACTION_CHOICES = [
+        ("create", "Create"),
+        ("update", "Update"),
+        ("delete", "Delete"),
+    ]
+
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="audit_log_entries",
+    )
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=100)
+    object_pk = models.CharField(max_length=255)
+    # Snapshot of str(instance) at the time of the action - the record
+    # itself may be further edited or (hard-)deleted later, so this is the
+    # only place the human-readable identity survives.
+    object_repr = models.CharField(max_length=200)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=["model_name", "object_pk"]),
+            models.Index(fields=["actor", "timestamp"]),
+        ]
+
+    def __str__(self):
+        who = self.actor.username if self.actor else "unknown"
+        return f"{who} {self.action}d {self.model_name} {self.object_pk}"
 
 
 class SoftDeleteManager(models.Manager):

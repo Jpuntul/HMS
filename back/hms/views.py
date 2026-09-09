@@ -6,6 +6,7 @@ from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.response import Response
 
 from .models import (
+    AuditLogEntry,
     Employee,
     Employment,
     Facility,
@@ -50,7 +51,53 @@ class CompositeLookupMixin:
         return obj
 
 
-class PersonListCreateView(generics.ListCreateAPIView):
+class AuditLogMixin:
+    """Writes one AuditLogEntry after each successful create/update/delete.
+
+    Hooks DRF's perform_* methods rather than save()/delete() on the models
+    themselves, so it only fires for API-driven writes (which is everything
+    that matters here - there's no admin-panel or management-command write
+    path for these models today) and stays out of models.py entirely.
+
+    Logs *after* the underlying operation succeeds, never before - a failed
+    write must not produce a log entry claiming it happened.
+    """
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        self._log("create", serializer.instance)
+
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        self._log("update", serializer.instance)
+
+    def perform_destroy(self, instance):
+        # Capture identity before super() runs: a hard delete removes the
+        # row (nothing left to introspect after), and even a soft delete
+        # mutates the instance mid-flight.
+        model_name = instance.__class__.__name__
+        object_pk = str(instance.pk)
+        object_repr = str(instance)[:200]
+        super().perform_destroy(instance)
+        AuditLogEntry.objects.create(
+            actor=self.request.user if self.request.user.is_authenticated else None,
+            action="delete",
+            model_name=model_name,
+            object_pk=object_pk,
+            object_repr=object_repr,
+        )
+
+    def _log(self, action, instance):
+        AuditLogEntry.objects.create(
+            actor=self.request.user if self.request.user.is_authenticated else None,
+            action=action,
+            model_name=instance.__class__.__name__,
+            object_pk=str(instance.pk),
+            object_repr=str(instance)[:200],
+        )
+
+
+class PersonListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
@@ -68,13 +115,13 @@ class PersonListCreateView(generics.ListCreateAPIView):
     ordering = ["first_name", "last_name"]
 
 
-class PersonDetailView(generics.RetrieveUpdateDestroyAPIView):
+class PersonDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
     lookup_field = "uuid"
 
 
-class EmployeeListCreateView(generics.ListCreateAPIView):
+class EmployeeListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
@@ -90,7 +137,7 @@ class EmployeeListCreateView(generics.ListCreateAPIView):
     ordering = ["person"]
 
 
-class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
+class EmployeeDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Employee.objects.select_related("person").all()
     serializer_class = EmployeeSerializer
     # Lookup Employee via Person.uuid since Employee.person is the OneToOne PK.
@@ -98,7 +145,7 @@ class EmployeeDetailView(generics.RetrieveUpdateDestroyAPIView):
     lookup_url_kwarg = "uuid"
 
 
-class FacilityListCreateView(generics.ListCreateAPIView):
+class FacilityListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
@@ -108,12 +155,12 @@ class FacilityListCreateView(generics.ListCreateAPIView):
     ordering = ["name"]
 
 
-class FacilityDetailView(generics.RetrieveUpdateDestroyAPIView):
+class FacilityDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Facility.objects.select_related("general_manager").all()
     serializer_class = FacilitySerializer
 
 
-class ResidenceListCreateView(generics.ListCreateAPIView):
+class ResidenceListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
     filter_backends = [SearchFilter, DjangoFilterBackend, OrderingFilter]
@@ -123,12 +170,12 @@ class ResidenceListCreateView(generics.ListCreateAPIView):
     ordering = ["city"]
 
 
-class ResidenceDetailView(generics.RetrieveUpdateDestroyAPIView):
+class ResidenceDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Residence.objects.all()
     serializer_class = ResidenceSerializer
 
 
-class InfectionTypeListCreateView(generics.ListCreateAPIView):
+class InfectionTypeListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = InfectionType.objects.all()
     serializer_class = InfectionTypeSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -136,12 +183,12 @@ class InfectionTypeListCreateView(generics.ListCreateAPIView):
     ordering = ["type_name"]
 
 
-class InfectionTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
+class InfectionTypeDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = InfectionType.objects.all()
     serializer_class = InfectionTypeSerializer
 
 
-class InfectionListCreateView(generics.ListCreateAPIView):
+class InfectionListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
     # SearchFilter was missing: the UI sends `?search=` and DRF silently
@@ -157,7 +204,9 @@ class InfectionListCreateView(generics.ListCreateAPIView):
     ordering = ["-date"]
 
 
-class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+class InfectionDetailView(
+    CompositeLookupMixin, AuditLogMixin, generics.RetrieveUpdateDestroyAPIView
+):
     queryset = Infection.objects.select_related("person", "infection_type").all()
     serializer_class = InfectionSerializer
     composite_lookup_map = {
@@ -167,7 +216,7 @@ class InfectionDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAP
     }
 
 
-class VaccineTypeListCreateView(generics.ListCreateAPIView):
+class VaccineTypeListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = VaccineType.objects.all()
     serializer_class = VaccineTypeSerializer
     filter_backends = [SearchFilter, OrderingFilter]
@@ -175,12 +224,12 @@ class VaccineTypeListCreateView(generics.ListCreateAPIView):
     ordering = ["type_name"]
 
 
-class VaccineTypeDetailView(generics.RetrieveUpdateDestroyAPIView):
+class VaccineTypeDetailView(AuditLogMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = VaccineType.objects.all()
     serializer_class = VaccineTypeSerializer
 
 
-class VaccinationListCreateView(generics.ListCreateAPIView):
+class VaccinationListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Vaccination.objects.select_related(
         "person", "vaccine_type", "facility"
     ).all()
@@ -199,7 +248,7 @@ class VaccinationListCreateView(generics.ListCreateAPIView):
 
 
 class VaccinationDetailView(
-    CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView
+    CompositeLookupMixin, AuditLogMixin, generics.RetrieveUpdateDestroyAPIView
 ):
     queryset = Vaccination.objects.select_related(
         "person", "vaccine_type", "facility"
@@ -212,7 +261,7 @@ class VaccinationDetailView(
     }
 
 
-class EmploymentListCreateView(generics.ListCreateAPIView):
+class EmploymentListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -221,7 +270,9 @@ class EmploymentListCreateView(generics.ListCreateAPIView):
     ordering = ["-start_date"]
 
 
-class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+class EmploymentDetailView(
+    CompositeLookupMixin, AuditLogMixin, generics.RetrieveUpdateDestroyAPIView
+):
     queryset = Employment.objects.select_related("employee__person", "facility").all()
     serializer_class = EmploymentSerializer
     composite_lookup_map = {
@@ -231,7 +282,7 @@ class EmploymentDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyA
     }
 
 
-class ScheduleListCreateView(generics.ListCreateAPIView):
+class ScheduleListCreateView(AuditLogMixin, generics.ListCreateAPIView):
     queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -240,7 +291,9 @@ class ScheduleListCreateView(generics.ListCreateAPIView):
     ordering = ["date", "start_time"]
 
 
-class ScheduleDetailView(CompositeLookupMixin, generics.RetrieveUpdateDestroyAPIView):
+class ScheduleDetailView(
+    CompositeLookupMixin, AuditLogMixin, generics.RetrieveUpdateDestroyAPIView
+):
     queryset = Schedule.objects.select_related("employee__person", "facility").all()
     serializer_class = ScheduleSerializer
     composite_lookup_map = {
