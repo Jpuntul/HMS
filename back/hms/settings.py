@@ -76,6 +76,7 @@ MIDDLEWARE = [
     # everything else: it short-circuits static-file requests so they never
     # touch session, auth, or CSRF handling.
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    "hms.middleware.ContentSecurityPolicyMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",

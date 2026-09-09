@@ -1,0 +1,21 @@
+# Cloudflare Pages picks this file up automatically from the deployed
+# output root (Vite copies public/ into dist/ at build time) and applies
+# these headers to every response. Django's own CSP (hms/middleware.py)
+# only covers pages Django serves - the admin panel and DRF's browsable
+# API. This SPA is a separate static deployment and needs its own.
+#
+# TODO before deploying: replace <API_ORIGIN> below with the real deployed
+# API origin (e.g. https://hms-api.up.railway.app) - a static file can't
+# read VITE_API_BASE_URL at request time, so this has to be kept in sync
+# by hand. Getting it wrong fails closed: the SPA simply can't reach the
+# API, not a silent security hole - worth checking once, at deploy time.
+#
+# Verified against the real dist/ build in a browser (see
+# notes/CSP_2026-09-09.md): zero console violations with no unsafe-inline
+# anywhere - this app has no dangerouslySetInnerHTML/innerHTML/eval, so a
+# fully strict policy works as-is, not just in theory.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self' <API_ORIGIN>; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
