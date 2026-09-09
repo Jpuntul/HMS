@@ -211,8 +211,15 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
+    # IsStaffOrReadOnly: any authenticated user may read, only staff accounts
+    # may write. First RBAC increment - see hms/permissions.py and
+    # notes/RBAC_STAFF_WRITE_GATE_2026-09-09.md. Every domain view in
+    # views.py/analytics.py relies entirely on this default (no per-view
+    # permission_classes override exists) - changing it here is the single
+    # point of control for all 30+ endpoints at once, same pattern
+    # AUTH_FOUNDATION already established for auth-by-default.
     "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
+        "hms.permissions.IsStaffOrReadOnly",
     ],
     "DEFAULT_PAGINATION_CLASS": "hms.pagination.CustomPageNumberPagination",
     "PAGE_SIZE": 20,
