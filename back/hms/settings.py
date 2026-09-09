@@ -251,6 +251,20 @@ REST_FRAMEWORK = {
 
 # SimpleJWT settings. Short-lived access tokens force regular refresh.
 #
+# ACCESS_TOKEN_LIFETIME (5 min, down from 15): access tokens are never
+# checked against the blacklist - JWTAuthentication verifies signature +
+# exp only, no DB lookup, which is the entire performance point of a
+# short-lived access token. That also means it can't be revoked; its
+# lifetime is the only lever bounding how long a leaked one is usable.
+# Went to 5 min, not lower: below roughly a minute, clock skew between
+# server and client becomes a meaningful fraction of the token's own life
+# (SimpleJWT's LEEWAY setting exists for exactly this), and the refresh
+# call volume grows for a security gain that's mostly already captured -
+# a token leaked and found later (a log, a cache, browser history) is
+# already expired at 5 min in practically every real scenario, and live
+# XSS doesn't care about this number at all: injected script just calls
+# /refresh/ itself in real time regardless of how short access is.
+#
 # Rotation + blacklisting together: ROTATE_REFRESH_TOKENS issues a new
 # refresh token on every use and BLACKLIST_AFTER_ROTATION invalidates the one
 # it replaced, server-side, immediately. A stolen refresh token is usable
@@ -268,7 +282,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
