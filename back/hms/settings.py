@@ -63,6 +63,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "hms",
@@ -215,28 +216,54 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_PAGINATION_CLASS": "hms.pagination.CustomPageNumberPagination",
     "PAGE_SIZE": 20,
+    # Login is the only throttled endpoint today - ScopedRateThrottle is
+    # opt-in per view (see LoginView.throttle_scope), so this rate has no
+    # effect anywhere it isn't explicitly attached.
+    "DEFAULT_THROTTLE_RATES": {
+        "login": "5/min",
+    },
+    # SimpleRateThrottle.get_ident(): with NUM_PROXIES unset, DRF trusts the
+    # *entire* client-supplied X-Forwarded-For value as the rate-limit key -
+    # an attacker can vary one header and get a fresh bucket every request,
+    # making the throttle above decorative. Setting this to the number of
+    # trusted proxies in front of the app makes DRF pick the correct hop
+    # instead. 1 is a placeholder for "one PaaS edge proxy" (Railway) -
+    # verify the real chain depth once this is actually deployed and adjust
+    # via .env; getting it wrong in either direction either throttles the
+    # proxy's own IP for everyone, or throttles nothing at all.
+    "NUM_PROXIES": int(os.getenv("NUM_PROXIES", "1")),
 }
+# Throttle counters live in Django's default LocMemCache, which is per
+# *process*, not shared across gunicorn workers and reset on every deploy.
+# At WEB_CONCURRENCY=2 (the Dockerfile default) the real ceiling on login
+# attempts is roughly 2x the configured rate, not the configured rate. Fine
+# at today's traffic; the fix if it ever isn't is a shared cache (Redis) -
+# which is also SYSTEM_DESIGN_METHOD's stated trigger for adding one:
+# state shared across more than one process.
 
 # SimpleJWT settings. Short-lived access tokens force regular refresh.
 #
-# IMPORTANT - what rotation does and does not buy us:
-# `ROTATE_REFRESH_TOKENS` issues a NEW refresh token on each refresh, but with
-# `BLACKLIST_AFTER_ROTATION = False` the OLD refresh token stays valid for its
-# full REFRESH_TOKEN_LIFETIME. Rotation alone therefore does NOT invalidate a
-# stolen refresh token - an attacker holding a copy can keep using it for up to
-# a day, in parallel with the legitimate user.
+# Rotation + blacklisting together: ROTATE_REFRESH_TOKENS issues a new
+# refresh token on every use and BLACKLIST_AFTER_ROTATION invalidates the one
+# it replaced, server-side, immediately. A stolen refresh token is usable
+# exactly once - the moment either party (attacker or legitimate user) uses
+# it, the other's copy stops working. Requires
+# rest_framework_simplejwt.token_blacklist in INSTALLED_APPS (added above)
+# and its migrations applied.
 #
-# Accepted deliberately for now (see notes/AUTH_FOUNDATION_2026-05-25.md); the
-# fix is to install `rest_framework_simplejwt.token_blacklist` in
-# INSTALLED_APPS, migrate, and flip the flag below to True.
+# Cost of turning this on: two tabs/devices sharing one refresh token (the
+# same browser, two tabs, same localStorage) can now race each other - the
+# loser's refresh gets rejected as already-rotated. The frontend
+# (AuthContext.refreshAccess) handles this by detecting that localStorage
+# already holds a newer token and adopting it, rather than treating the
+# loser's 401 as a real logout. See notes/LOGIN_SECURITY_HARDENING_2026-09-08.md.
 from datetime import timedelta  # noqa: E402
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
-    # Requires the token_blacklist app; see the note above before changing.
-    "BLACKLIST_AFTER_ROTATION": False,
+    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "USER_ID_FIELD": "id",
     "USER_ID_CLAIM": "user_id",

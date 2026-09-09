@@ -102,12 +102,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   /** Use the stored refresh token to get a fresh access token. */
   const refreshAccess = async (): Promise<string | null> => {
-    const refresh = localStorage.getItem(REFRESH_KEY);
-    if (!refresh) return null;
+    const attemptedRefresh = localStorage.getItem(REFRESH_KEY);
+    if (!attemptedRefresh) return null;
     try {
       const res = await axios.post(
         API_ENDPOINTS.refresh,
-        { refresh },
+        { refresh: attemptedRefresh },
         // bypass the default Authorization header for the refresh call itself
         { headers: { Authorization: "" } },
       );
@@ -119,6 +119,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setAuthHeader(newAccess);
       return newAccess;
     } catch {
+      // The backend now blacklists a refresh token the instant it's rotated
+      // (see settings.SIMPLE_JWT). Two tabs sharing one refresh token in
+      // localStorage can race: both read the same token, one wins and
+      // rotates it, the other's identical request gets rejected as
+      // already-used. That's not a real auth failure - if localStorage now
+      // holds a *different* refresh token than the one we just sent, the
+      // sibling tab already won this race. Adopt its fresh access token
+      // instead of logging the user out (and instead of clearTokens()
+      // wiping the sibling's still-valid session out from under it).
+      const currentRefresh = localStorage.getItem(REFRESH_KEY);
+      const currentAccess = localStorage.getItem(ACCESS_KEY);
+      if (
+        currentRefresh &&
+        currentAccess &&
+        currentRefresh !== attemptedRefresh
+      ) {
+        setAccessToken(currentAccess);
+        setAuthHeader(currentAccess);
+        return currentAccess;
+      }
       return null;
     }
   };
@@ -206,13 +226,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async (): Promise<void> => {
     try {
-      // Fire-and-forget; the server doesn't actually need to do anything for
-      // JWT logout, but the endpoint exists for parity / future hooks.
+      // Send the refresh token so the server can blacklist it - logout now
+      // actually ends the session server-side, not just locally. Read from
+      // localStorage rather than closing over a stale value.
       if (accessToken) {
-        await axios.post(API_ENDPOINTS.logout, {});
+        const refresh = localStorage.getItem(REFRESH_KEY);
+        await axios.post(API_ENDPOINTS.logout, refresh ? { refresh } : {});
       }
     } catch {
-      // Ignore network errors on logout - tokens get cleared either way.
+      // Ignore network errors on logout - tokens get cleared locally either way.
     } finally {
       clearTokens();
     }
