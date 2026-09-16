@@ -1,10 +1,15 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
-import { API_ENDPOINTS, ROUTES } from "../../config/api";
+import { SkeletonCards } from "../../components/Skeleton";
+import ScheduleCard, { type Schedule } from "../../components/ScheduleCard";
+import { roleMeta } from "../../utils/roleMeta";
+import SearchBar from "../../components/SearchBar";
+import FilterDropdown from "../../components/FilterDropdown";
+import { API_ENDPOINTS } from "../../config/api";
 import {
   ClockIcon,
   PlusIcon,
@@ -12,23 +17,8 @@ import {
   UserIcon,
   BuildingOfficeIcon,
   FunnelIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { useDebounce } from "../../hooks/useDebounce";
-
-interface Schedule {
-  person_uuid: string;
-  essn: number;
-  fid: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  employee_name: string;
-  facility_name: string;
-  employee_role: string;
-}
 
 const ScheduleList: React.FC = () => {
   const location = useLocation();
@@ -51,27 +41,25 @@ const ScheduleList: React.FC = () => {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  useEffect(() => {
-    fetchSchedules();
-
-    // Show success message from navigation state
-    if (location.state?.message) {
-      setSuccessMessage(location.state.message);
-      setTimeout(() => setSuccessMessage(""), 5000);
-      // Clear the location state
-      window.history.replaceState({}, document.title);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, selectedRole, selectedFacility, currentPage]);
-
-  // Reset to page 1 when search/filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, selectedRole, selectedFacility]);
-
   const itemsPerPage = 18;
 
-  const fetchSchedules = async () => {
+  // Tracks the pending "clear success message" timer so a second message
+  // (or an unmount) can cancel a still-pending one instead of leaking it.
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccessMessage = (message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMessage(message);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const fetchSchedules = async (signal?: AbortSignal) => {
     try {
       const isInitialLoad = schedules.length === 0;
       if (isInitialLoad) {
@@ -98,7 +86,7 @@ const ScheduleList: React.FC = () => {
         url += `?${params.toString()}`;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, { signal });
       // Handle paginated response
       const data = response.data.results || response.data;
       setSchedules(Array.isArray(data) ? data : []);
@@ -107,21 +95,61 @@ const ScheduleList: React.FC = () => {
         Math.ceil((response.data.count || data.length) / itemsPerPage),
       );
       setLoading(false);
-    } catch {
+    } catch (err) {
+      if (axios.isCancel(err)) return;
       setError("Failed to fetch schedules");
       setLoading(false);
     }
   };
 
-  const handleDeleteClick = (schedule: Schedule) => {
+  // Success message from navigation state (e.g. after Add/Edit) is a
+  // one-off tied to how we arrived here, not to search/filter/page state -
+  // it has its own effect so filter changes don't re-trigger it.
+  useEffect(() => {
+    if (location.state?.message) {
+      showSuccessMessage(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Single source of truth for fetching: page reset on filter/search change
+  // happens synchronously in the change handlers below (not a second effect
+  // reacting to the same value) so this effect fires once per settled
+  // (search, filters, page) combination instead of twice. The AbortController
+  // cancels a still-in-flight request if a newer one starts before it
+  // resolves, so a slow earlier response can never overwrite a later one.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchSchedules(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearchTerm, selectedRole, selectedFacility, currentPage]);
+
+  // Stable reference so ScheduleCard's React.memo isn't defeated by a new
+  // function identity on every ScheduleList render.
+  const handleDeleteClick = useCallback((schedule: Schedule) => {
     setScheduleToDelete(schedule);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = () => {
     fetchSchedules();
-    setSuccessMessage("Schedule deleted successfully!");
-    setTimeout(() => setSuccessMessage(""), 5000);
+    showSuccessMessage("Schedule deleted successfully!");
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleRoleChange = (value: string) => {
+    setSelectedRole(value);
+    setCurrentPage(1);
+  };
+
+  const handleFacilityChange = (value: string) => {
+    setSelectedFacility(value);
+    setCurrentPage(1);
   };
 
   const handleDeleteCancel = () => {
@@ -129,26 +157,26 @@ const ScheduleList: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    const colors: { [key: string]: string } = {
-      doctor: "bg-blue-100 text-blue-800",
-      nurse: "bg-green-100 text-green-800",
-      pharmacist: "bg-purple-100 text-purple-800",
-      cashier: "bg-yellow-100 text-yellow-800",
-      receptionist: "bg-pink-100 text-pink-800",
-      "administrative personnel": "bg-gray-100 text-gray-800",
-      "security personnel": "bg-red-100 text-red-800",
-    };
-    return colors[role.toLowerCase()] || "bg-gray-100 text-gray-800";
-  };
-
-  // Get unique roles and facilities for filters
+  // Get unique roles and facilities for filters. Preserved exactly as
+  // before (derived from the currently-loaded page of schedules, not a
+  // dedicated filter-options endpoint) - a pre-existing limitation (options
+  // only reflect what's on the current page), out of scope for this visual
+  // pass to change.
   const uniqueRoles = [
     ...new Set(schedules.map((s) => s.employee_role)),
   ].sort();
   const uniqueFacilities = [
     ...new Set(schedules.map((s) => s.facility_name)),
   ].sort();
+
+  const roleOptions = uniqueRoles.map((role) => ({
+    value: role,
+    label: role.charAt(0).toUpperCase() + role.slice(1),
+  }));
+  const facilityOptions = uniqueFacilities.map((facility) => ({
+    value: facility,
+    label: facility,
+  }));
 
   // Group schedules by date for list view
   const groupedSchedules = schedules.reduce(
@@ -165,41 +193,45 @@ const ScheduleList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading schedules...</div>
+      <div className="min-h-screen bg-paper py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SkeletonCards columns="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-red-600">{error}</div>
+      <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div className="rounded border border-stamp-red/30 bg-stamp-red/5 px-6 py-4 text-stamp-red-ink">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600">{successMessage}</p>
+          <div className="mb-6 rounded border border-verified-green/30 bg-verified-green/5 p-4">
+            <p className="text-sm font-medium text-verified-green-ink">
+              {successMessage}
+            </p>
           </div>
         )}
 
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <ClockIcon className="h-8 w-8 text-blue-600" />
+        <div className="mb-8 rounded border-[1.5px] border-ink bg-panel">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <ClockIcon className="h-7 w-7 flex-shrink-0 text-ink" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Employee Schedules
-                  </h1>
-                  <p className="text-gray-600 mt-2">
+                  <h1 className="text-2xl font-bold text-ink">Schedules</h1>
+                  <p className="mt-1 text-sm text-ink-soft">
                     Manage work schedules and shifts
                   </p>
                 </div>
@@ -208,7 +240,7 @@ const ScheduleList: React.FC = () => {
                 <div className="flex space-x-3">
                   <Link
                     to="/schedules/add"
-                    className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                    className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
                   >
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Schedule</span>
@@ -219,64 +251,55 @@ const ScheduleList: React.FC = () => {
           </div>
 
           {/* Search and Filter */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="border-b border-paper-line px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <input
-                type="text"
-                placeholder="Search by employee, facility, or role..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="md:col-span-2 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-
-              <select
+              <div className="md:col-span-2">
+                <SearchBar
+                  searchTerm={searchTerm}
+                  onSearchChange={handleSearchChange}
+                  placeholder="Search by employee name..."
+                  label="Search"
+                  id="schedule-search"
+                />
+              </div>
+              <FilterDropdown
+                label="Role"
                 value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Roles</option>
-                {uniqueRoles.map((role) => (
-                  <option key={role} value={role}>
-                    {role.charAt(0).toUpperCase() + role.slice(1)}
-                  </option>
-                ))}
-              </select>
-
-              <select
+                onChange={handleRoleChange}
+                options={roleOptions}
+                id="schedule-role-filter"
+              />
+              <FilterDropdown
+                label="Facility"
                 value={selectedFacility}
-                onChange={(e) => setSelectedFacility(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">All Facilities</option>
-                {uniqueFacilities.map((facility) => (
-                  <option key={facility} value={facility}>
-                    {facility}
-                  </option>
-                ))}
-              </select>
+                onChange={handleFacilityChange}
+                options={facilityOptions}
+                id="schedule-facility-filter"
+              />
             </div>
 
-            <div className="flex items-center justify-between mt-4">
-              <div className="text-sm text-gray-600">
-                Total Schedules: {totalCount}
+            <div className="mt-4 flex items-center justify-between">
+              <div className="text-sm text-ink-soft">
+                Total Schedules:{" "}
+                <span className="font-medium text-ink">{totalCount}</span>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => setViewMode("grid")}
-                  className={`px-4 py-2 rounded-lg ${
+                  className={`rounded border-[1.5px] px-4 py-2 text-sm font-medium transition-colors ${
                     viewMode === "grid"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      ? "border-ink bg-ink text-paper"
+                      : "border-paper-line text-ink-soft hover:border-ink hover:text-ink"
                   }`}
                 >
                   Grid View
                 </button>
                 <button
                   onClick={() => setViewMode("list")}
-                  className={`px-4 py-2 rounded-lg ${
+                  className={`rounded border-[1.5px] px-4 py-2 text-sm font-medium transition-colors ${
                     viewMode === "list"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                      ? "border-ink bg-ink text-paper"
+                      : "border-paper-line text-ink-soft hover:border-ink hover:text-ink"
                   }`}
                 >
                   List by Date
@@ -286,29 +309,29 @@ const ScheduleList: React.FC = () => {
           </div>
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {totalCount}
-                </div>
-                <div className="text-blue-800 font-medium">Total Schedules</div>
+          <div className="flex flex-wrap items-stretch border-t-[1.5px] border-ink">
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {totalCount}
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {new Set(schedules.map((s) => s.essn)).size}
-                </div>
-                <div className="text-green-800 font-medium">
-                  Scheduled Employees
-                </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL SCHEDULES
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {new Set(schedules.map((s) => s.fid)).size}
-                </div>
-                <div className="text-purple-800 font-medium">
-                  Active Facilities
-                </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-verified-green-ink">
+                {new Set(schedules.map((s) => s.essn)).size}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                SCHEDULED EMPLOYEES
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-pending-amber-ink">
+                {new Set(schedules.map((s) => s.fid)).size}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                ACTIVE FACILITIES
               </div>
             </div>
           </div>
@@ -317,102 +340,13 @@ const ScheduleList: React.FC = () => {
         {/* Schedules Display */}
         {viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {schedules.map((schedule, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-6"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <UserIcon className="h-6 w-6 text-blue-600 mr-2" />
-                    <div className="text-lg font-semibold text-gray-900">
-                      {schedule.employee_name}
-                    </div>
-                  </div>
-                  <span
-                    className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                      schedule.employee_role,
-                    )}`}
-                  >
-                    {schedule.employee_role}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    {schedule.facility_name}
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-600">
-                    <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    {new Date(schedule.date).toLocaleDateString("en-US", {
-                      weekday: "short",
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </div>
-
-                  <div className="flex items-center text-sm text-gray-600">
-                    <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="font-medium text-gray-900">
-                      {schedule.start_time.slice(0, 5)}
-                    </span>
-                    <span className="mx-2">→</span>
-                    <span className="font-medium text-gray-900">
-                      {schedule.end_time
-                        ? schedule.end_time.slice(0, 5)
-                        : "Ongoing"}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-gray-500">
-                      SSN: {schedule.essn} • Facility ID: {schedule.fid}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Link
-                        to={ROUTES.scheduleDetail(
-                          schedule.person_uuid,
-                          schedule.fid,
-                          schedule.date,
-                          schedule.start_time,
-                        )}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="View Details"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </Link>
-                      {user && (
-                        <>
-                          <Link
-                            to={ROUTES.scheduleEdit(
-                              schedule.person_uuid,
-                              schedule.fid,
-                              schedule.date,
-                              schedule.start_time,
-                            )}
-                            className="text-green-600 hover:text-green-900"
-                            title="Edit"
-                          >
-                            <PencilIcon className="h-4 w-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDeleteClick(schedule)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete"
-                          >
-                            <TrashIcon className="h-4 w-4" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
+            {schedules.map((schedule) => (
+              <ScheduleCard
+                key={`${schedule.person_uuid}-${schedule.fid}-${schedule.date}-${schedule.start_time}`}
+                schedule={schedule}
+                canWrite={!!user}
+                onDeleteClick={handleDeleteClick}
+              />
             ))}
           </div>
         ) : (
@@ -420,11 +354,14 @@ const ScheduleList: React.FC = () => {
             {Object.entries(groupedSchedules)
               .sort(([dateA], [dateB]) => dateB.localeCompare(dateA))
               .map(([date, daySchedules]) => (
-                <div key={date} className="bg-white rounded-lg shadow">
-                  <div className="bg-blue-50 px-6 py-4 border-b border-blue-100">
+                <div
+                  key={date}
+                  className="overflow-hidden rounded border-[1.5px] border-ink bg-panel"
+                >
+                  <div className="border-b border-paper-line px-6 py-4">
                     <div className="flex items-center">
-                      <CalendarIcon className="h-5 w-5 text-blue-600 mr-2" />
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <CalendarIcon className="mr-2 h-5 w-5 text-ink-soft" />
+                      <h3 className="text-sm font-bold uppercase tracking-wide text-ink">
                         {new Date(date).toLocaleDateString("en-US", {
                           weekday: "long",
                           year: "numeric",
@@ -432,22 +369,22 @@ const ScheduleList: React.FC = () => {
                           day: "numeric",
                         })}
                       </h3>
-                      <span className="ml-auto bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                      <span className="ml-auto font-mono text-xs text-ink-soft">
                         {daySchedules.length} shifts
                       </span>
                     </div>
                   </div>
-                  <div className="divide-y divide-gray-200">
+                  <div className="divide-y divide-paper-line">
                     {daySchedules.map((schedule, idx) => (
                       <div
                         key={idx}
-                        className="px-6 py-4 hover:bg-gray-50 transition-colors"
+                        className="px-6 py-4 transition-colors hover:bg-ink/[0.02]"
                       >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-4">
                             <div className="flex items-center">
-                              <ClockIcon className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="font-medium text-gray-900">
+                              <ClockIcon className="mr-2 h-4 w-4 text-ink-soft" />
+                              <span className="font-mono tabular-nums text-ink">
                                 {schedule.start_time.slice(0, 5)} -{" "}
                                 {schedule.end_time
                                   ? schedule.end_time.slice(0, 5)
@@ -455,21 +392,23 @@ const ScheduleList: React.FC = () => {
                               </span>
                             </div>
                             <div className="flex items-center">
-                              <UserIcon className="h-4 w-4 text-gray-400 mr-2" />
-                              <span className="text-gray-900">
+                              <UserIcon className="mr-2 h-4 w-4 text-ink-soft" />
+                              <span className="text-ink">
                                 {schedule.employee_name}
                               </span>
                             </div>
                             <span
-                              className={`px-2 py-1 text-xs font-semibold rounded-full ${getRoleBadgeColor(
-                                schedule.employee_role,
-                              )}`}
+                              className="badge-tag"
+                              style={{
+                                background: roleMeta(schedule.employee_role)
+                                  .color,
+                              }}
                             >
-                              {schedule.employee_role}
+                              {roleMeta(schedule.employee_role).abbr}
                             </span>
                           </div>
-                          <div className="flex items-center text-sm text-gray-600">
-                            <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                          <div className="flex items-center text-sm text-ink-soft">
+                            <BuildingOfficeIcon className="mr-2 h-4 w-4 text-ink-soft" />
                             {schedule.facility_name}
                           </div>
                         </div>
@@ -482,12 +421,12 @@ const ScheduleList: React.FC = () => {
         )}
 
         {schedules.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <FunnelIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+          <div className="rounded border border-dashed border-paper-line bg-paper p-12 text-center">
+            <FunnelIcon className="mx-auto h-12 w-12 text-ink-soft/30" />
+            <h3 className="mt-2 text-sm font-medium text-ink">
               No schedules found
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-ink-soft">
               {searchTerm || selectedRole || selectedFacility
                 ? "Try adjusting your filters"
                 : "Get started by adding a new schedule"}

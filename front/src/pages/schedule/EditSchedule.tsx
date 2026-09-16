@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Facility {
   fid: number;
@@ -21,6 +22,16 @@ interface ScheduleFormData {
   facility_name?: string;
   employee_role?: string;
 }
+
+const inputClass = (hasError: boolean) =>
+  `block w-full rounded-lg border bg-paper px-3 py-2 text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-ink/20 ${
+    hasError
+      ? "border-stamp-red focus:border-stamp-red"
+      : "border-paper-line focus:border-ink"
+  }`;
+
+const labelClass =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft";
 
 const EditSchedule: React.FC = () => {
   const navigate = useNavigate();
@@ -78,22 +89,21 @@ const EditSchedule: React.FC = () => {
     fetchData();
   }, [person_uuid, fid, date, start_time, navigate]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "fid" ? parseInt(value) : value || null,
-    }));
-
-    // Clear error when user starts typing
+  const clearFieldError = (name: string) => {
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value || null }));
+    clearFieldError(name);
+  };
+
+  const handleFacilityChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, fid: parseInt(value, 10) }));
+    clearFieldError("fid");
   };
 
   const validateForm = (): boolean => {
@@ -158,170 +168,171 @@ const EditSchedule: React.FC = () => {
     navigate("/schedules");
   };
 
+  const facilityOptions = facilities.map((facility) => ({
+    value: facility.fid.toString(),
+    label: `${facility.name} — ${facility.type} (${facility.city})`,
+  }));
+
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading schedule data...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading schedule data"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">Loading schedule data…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <PencilSquareIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Edit Work Schedule
-            </h1>
+    <div className="min-h-screen bg-paper py-8">
+      <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+        <div className="badge-card p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <PencilSquareIcon className="h-5 w-5 text-ink" aria-hidden="true" />
+            <h1 className="text-xl font-bold text-ink">Edit Work Schedule</h1>
           </div>
+          <p className="mb-8 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            Update this shift's facility, date, or time.
+          </p>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div
+              role="alert"
+              className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {errors.general}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
-                Schedule Information
-              </h3>
-              <p className="text-sm text-gray-600">
-                <strong>Employee:</strong> {employeeName}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>Role:</strong> {employeeRole}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>SSN:</strong> {formData.essn}
-              </p>
-            </div>
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="space-y-5">
+              <div className="rounded border border-paper-line bg-ink/[0.03] p-4">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  Schedule Information
+                </h3>
+                <dl className="space-y-1 text-sm">
+                  <div className="flex gap-2">
+                    <dt className="w-20 flex-shrink-0 font-medium text-ink-soft">
+                      Employee
+                    </dt>
+                    <dd className="text-ink">{employeeName}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="w-20 flex-shrink-0 font-medium text-ink-soft">
+                      Role
+                    </dt>
+                    <dd className="text-ink">{employeeRole}</dd>
+                  </div>
+                </dl>
+              </div>
 
-            <div>
-              <label
-                htmlFor="fid"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Select Facility *
-              </label>
-              {facilitiesLoading ? (
-                <div className="text-gray-500">Loading facilities...</div>
-              ) : (
-                <select
-                  id="fid"
-                  name="fid"
-                  value={formData.fid}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.fid ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select a facility --</option>
-                  {facilities.map((facility) => (
-                    <option key={facility.fid} value={facility.fid}>
-                      {facility.name} - {facility.type} ({facility.city})
-                    </option>
-                  ))}
-                </select>
-              )}
-              {errors.fid && (
-                <p className="mt-1 text-sm text-red-600">{errors.fid}</p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Work Date *
-              </label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label
-                  htmlFor="start_time"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Start Time *
+                <label htmlFor="fid" className={labelClass}>
+                  Select Facility *
                 </label>
-                <input
-                  type="time"
-                  id="start_time"
-                  name="start_time"
-                  value={formData.start_time}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.start_time ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
-                {errors.start_time && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.start_time}
+                {facilitiesLoading ? (
+                  <div className="text-sm text-ink-soft">
+                    Loading facilities…
+                  </div>
+                ) : (
+                  <Dropdown
+                    id="fid"
+                    value={formData.fid ? formData.fid.toString() : ""}
+                    onChange={handleFacilityChange}
+                    options={facilityOptions}
+                    placeholder="-- Select a facility --"
+                  />
+                )}
+                {errors.fid && (
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.fid}
                   </p>
                 )}
               </div>
 
               <div>
-                <label
-                  htmlFor="end_time"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  End Time
+                <label htmlFor="date" className={labelClass}>
+                  Work Date *
                 </label>
                 <input
-                  type="time"
-                  id="end_time"
-                  name="end_time"
-                  value={formData.end_time || ""}
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.end_time ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={inputClass(!!errors.date)}
                 />
-                {errors.end_time && (
-                  <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
+                {errors.date && (
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.date}
+                  </p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Leave empty for open-ended shift
-                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label htmlFor="start_time" className={labelClass}>
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    id="start_time"
+                    name="start_time"
+                    value={formData.start_time}
+                    onChange={handleInputChange}
+                    className={inputClass(!!errors.start_time)}
+                  />
+                  {errors.start_time && (
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.start_time}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="end_time" className={labelClass}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    id="end_time"
+                    name="end_time"
+                    value={formData.end_time || ""}
+                    onChange={handleInputChange}
+                    className={inputClass(!!errors.end_time)}
+                  />
+                  {errors.end_time && (
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.end_time}
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-sm text-ink-soft">
+                    Leave empty for open-ended shift
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="mt-8 flex justify-end space-x-3 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 font-medium text-ink transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || facilitiesLoading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 font-medium text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? "Updating..." : "Update Schedule"}
+                {loading ? "Updating…" : "Update Schedule"}
               </button>
             </div>
           </form>

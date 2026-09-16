@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { CalendarIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Employee {
   ssn: number;
@@ -24,6 +25,16 @@ interface ScheduleFormData {
   start_time: string;
   end_time: string;
 }
+
+const inputClass = (hasError: boolean) =>
+  `block w-full rounded-lg border bg-paper px-3 py-2 text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-2 focus:ring-ink/20 ${
+    hasError
+      ? "border-stamp-red focus:border-stamp-red"
+      : "border-paper-line focus:border-ink"
+  }`;
+
+const labelClass =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft";
 
 const AddSchedule: React.FC = () => {
   const navigate = useNavigate();
@@ -65,22 +76,15 @@ const AddSchedule: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear error when user starts typing
+  const setField = (name: keyof ScheduleFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setField(e.target.name as keyof ScheduleFormData, e.target.value);
   };
 
   const validateForm = (): boolean => {
@@ -144,186 +148,176 @@ const AddSchedule: React.FC = () => {
     navigate("/schedules");
   };
 
+  const employeeOptions = employees.map((employee) => ({
+    value: employee.ssn.toString(),
+    label: `${employee.person_name} — ${employee.role}`,
+  }));
+  const facilityOptions = facilities.map((facility) => ({
+    value: facility.fid.toString(),
+    label: `${facility.name} — ${facility.type} (${facility.city})`,
+  }));
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <CalendarIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Add Work Schedule
-            </h1>
+    <div className="min-h-screen bg-paper py-8">
+      <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+        <div className="animate-panel-rise rounded-xl border-[1.5px] border-ink bg-panel p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <span className="text-lg font-bold tracking-tight text-ink">
+              HMS
+            </span>
+            <h1 className="text-xl font-bold text-ink">Add Work Schedule</h1>
+          </div>
+          <div className="mb-8 flex items-center gap-1.5 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            <CalendarIcon className="h-4 w-4" aria-hidden="true" />
+            Schedule a shift for an employee at a facility.
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div
+              role="alert"
+              className="mb-6 rounded-lg border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {errors.general}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label
-                htmlFor="essn"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Select Employee *
-              </label>
-              {employeesLoading ? (
-                <div className="text-gray-500">Loading employees...</div>
-              ) : (
-                <select
-                  id="essn"
-                  name="essn"
-                  value={formData.essn}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.essn ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select an employee --</option>
-                  {employees.map((employee) => (
-                    <option key={employee.ssn} value={employee.ssn}>
-                      {employee.person_name} - {employee.role} (SSN:{" "}
-                      {employee.ssn})
-                    </option>
-                  ))}
-                </select>
-              )}
-              {errors.essn && (
-                <p className="mt-1 text-sm text-red-600">{errors.essn}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                Select the employee to schedule
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="fid"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Select Facility *
-              </label>
-              {facilitiesLoading ? (
-                <div className="text-gray-500">Loading facilities...</div>
-              ) : (
-                <select
-                  id="fid"
-                  name="fid"
-                  value={formData.fid}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.fid ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select a facility --</option>
-                  {facilities.map((facility) => (
-                    <option key={facility.fid} value={facility.fid}>
-                      {facility.name} - {facility.type} ({facility.city})
-                    </option>
-                  ))}
-                </select>
-              )}
-              {errors.fid && (
-                <p className="mt-1 text-sm text-red-600">{errors.fid}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                Select the facility where the employee will work
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Work Date *
-              </label>
-              <input
-                type="date"
-                id="date"
-                name="date"
-                value={formData.date}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
-              />
-              {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                Date of the scheduled shift
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="space-y-5">
               <div>
-                <label
-                  htmlFor="start_time"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Start Time *
+                <label htmlFor="essn" className={labelClass}>
+                  Select Employee *
                 </label>
-                <input
-                  type="time"
-                  id="start_time"
-                  name="start_time"
-                  value={formData.start_time}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.start_time ? "border-red-500" : "border-gray-300"
-                  }`}
-                />
-                {errors.start_time && (
-                  <p className="mt-1 text-sm text-red-600">
-                    {errors.start_time}
+                {employeesLoading ? (
+                  <div className="text-sm text-ink-soft">
+                    Loading employees…
+                  </div>
+                ) : (
+                  <Dropdown
+                    id="essn"
+                    value={formData.essn}
+                    onChange={(value) => setField("essn", value)}
+                    options={employeeOptions}
+                    placeholder="-- Select an employee --"
+                  />
+                )}
+                {errors.essn && (
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.essn}
                   </p>
                 )}
+                <p className="mt-1.5 text-sm text-ink-soft">
+                  Select the employee to schedule
+                </p>
               </div>
 
               <div>
-                <label
-                  htmlFor="end_time"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  End Time
+                <label htmlFor="fid" className={labelClass}>
+                  Select Facility *
+                </label>
+                {facilitiesLoading ? (
+                  <div className="text-sm text-ink-soft">
+                    Loading facilities…
+                  </div>
+                ) : (
+                  <Dropdown
+                    id="fid"
+                    value={formData.fid}
+                    onChange={(value) => setField("fid", value)}
+                    options={facilityOptions}
+                    placeholder="-- Select a facility --"
+                  />
+                )}
+                {errors.fid && (
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.fid}
+                  </p>
+                )}
+                <p className="mt-1.5 text-sm text-ink-soft">
+                  Select the facility where the employee will work
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="date" className={labelClass}>
+                  Work Date *
                 </label>
                 <input
-                  type="time"
-                  id="end_time"
-                  name="end_time"
-                  value={formData.end_time}
+                  type="date"
+                  id="date"
+                  name="date"
+                  value={formData.date}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.end_time ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={inputClass(!!errors.date)}
                 />
-                {errors.end_time && (
-                  <p className="mt-1 text-sm text-red-600">{errors.end_time}</p>
+                {errors.date && (
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.date}
+                  </p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Leave empty for open-ended shift
+                <p className="mt-1.5 text-sm text-ink-soft">
+                  Date of the scheduled shift
                 </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <div>
+                  <label htmlFor="start_time" className={labelClass}>
+                    Start Time *
+                  </label>
+                  <input
+                    type="time"
+                    id="start_time"
+                    name="start_time"
+                    value={formData.start_time}
+                    onChange={handleInputChange}
+                    className={inputClass(!!errors.start_time)}
+                  />
+                  {errors.start_time && (
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.start_time}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label htmlFor="end_time" className={labelClass}>
+                    End Time
+                  </label>
+                  <input
+                    type="time"
+                    id="end_time"
+                    name="end_time"
+                    value={formData.end_time}
+                    onChange={handleInputChange}
+                    className={inputClass(!!errors.end_time)}
+                  />
+                  {errors.end_time && (
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.end_time}
+                    </p>
+                  )}
+                  <p className="mt-1.5 text-sm text-ink-soft">
+                    Leave empty for open-ended shift
+                  </p>
+                </div>
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="mt-8 flex justify-end space-x-3 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded-lg border border-paper-line px-6 py-2 font-medium text-ink transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || employeesLoading || facilitiesLoading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-ink px-6 py-2 font-medium text-paper shadow-sm transition-all duration-200 hover:bg-ink/90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? "Adding..." : "Add Schedule"}
+                {loading ? "Adding…" : "Add Schedule"}
               </button>
             </div>
           </form>

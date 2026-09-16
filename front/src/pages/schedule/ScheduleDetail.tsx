@@ -8,6 +8,8 @@ import {
   ArrowLeftIcon,
   ClockIcon,
 } from "@heroicons/react/24/outline";
+import FormCheck from "../../components/FormCheck";
+import { roleMeta } from "../../utils/roleMeta";
 
 interface ScheduleData {
   essn: number;
@@ -19,6 +21,32 @@ interface ScheduleData {
   facility_name: string;
   employee_role: string;
 }
+
+const Field: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div>
+    <h4 className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+      {label}
+    </h4>
+    <div className="text-base text-ink">{children}</div>
+  </div>
+);
+
+const Section: React.FC<{
+  title: string;
+  icon?: React.ElementType;
+  children: React.ReactNode;
+}> = ({ title, icon: Icon, children }) => (
+  <div className="border-b border-paper-line px-6 py-6 last:border-b-0">
+    <h3 className="mb-4 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-ink">
+      {Icon && <Icon className="h-4 w-4 text-ink-soft" />}
+      {title}
+    </h3>
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">{children}</div>
+  </div>
+);
 
 const ScheduleDetail: React.FC = () => {
   const { person_uuid, fid, date, start_time } = useParams<{
@@ -90,10 +118,16 @@ const ScheduleDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading schedule details...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading schedule details"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">
+            Loading schedule details…
+          </p>
         </div>
       </div>
     );
@@ -101,10 +135,15 @@ const ScheduleDetail: React.FC = () => {
 
   if (error || !schedule) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || "Schedule not found"}</p>
-          <Link to="/schedules" className="text-blue-600 hover:text-blue-700">
+          <p className="mb-4 text-stamp-red-ink">
+            {error || "Schedule not found"}
+          </p>
+          <Link
+            to="/schedules"
+            className="text-ink underline hover:no-underline"
+          >
             Back to Schedules
           </Link>
         </div>
@@ -113,147 +152,89 @@ const ScheduleDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-paper py-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
           <Link
             to="/schedules"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
+            className="mb-4 inline-flex items-center text-sm font-medium text-ink-soft transition-colors hover:text-ink"
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
             Back to Schedules
           </Link>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <CalendarIcon className="h-10 w-10 text-blue-600" />
+            <div className="flex items-center gap-3">
+              <CalendarIcon className="h-8 w-8 text-ink" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-ink">
                   Work Schedule Details
                 </h1>
-                <p className="text-gray-500">
-                  {schedule.employee_name} · {schedule.facility_name} ·{" "}
-                  {formatDate(schedule.date)} at{" "}
+                <p className="font-mono text-xs tracking-wide text-ink-soft">
+                  NO. {person_uuid?.slice(0, 8).toUpperCase()} ·{" "}
+                  {schedule.facility_name} · {formatDate(schedule.date)} at{" "}
                   {schedule.start_time.slice(0, 5)}
                 </p>
               </div>
             </div>
             <Link
               to={ROUTES.scheduleEdit(person_uuid!, fid!, date!, start_time!)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
             >
-              <PencilSquareIcon className="h-5 w-5 mr-2" />
+              <PencilSquareIcon className="h-4 w-4" />
               Edit
             </Link>
           </div>
         </div>
 
-        {/* Details Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
-          {/* Employee Information */}
-          <div className="mb-6 pb-6 border-b">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Employee Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Employee Name
-                </h4>
-                <p className="text-lg text-gray-900">
-                  {schedule.employee_name}
-                </p>
-              </div>
+        {/* Details Panel */}
+        <div className="badge-card">
+          <Section title="Employee Information">
+            <Field label="Employee Name">{schedule.employee_name}</Field>
+            <Field label="Role">
+              <span
+                className="badge-tag"
+                style={{ background: roleMeta(schedule.employee_role).color }}
+              >
+                {roleMeta(schedule.employee_role).abbr}
+              </span>
+            </Field>
+          </Section>
 
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Role
-                </h4>
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
-                  {schedule.employee_role}
-                </span>
-              </div>
+          <Section title="Schedule Information">
+            <Field label="Facility">{schedule.facility_name}</Field>
+            <Field label="Work Date">{formatDate(schedule.date)}</Field>
+          </Section>
 
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Employee SSN
-                </h4>
-                <p className="text-lg text-gray-900">{schedule.essn}</p>
-              </div>
-            </div>
-          </div>
+          <Section title="Shift Details" icon={ClockIcon}>
+            <Field label="Start Time">
+              <span className="font-semibold tabular-nums">
+                {formatTime(schedule.start_time)}
+              </span>
+            </Field>
+            <Field label="End Time">
+              <span className="font-semibold tabular-nums">
+                {schedule.end_time
+                  ? formatTime(schedule.end_time)
+                  : "Open-ended"}
+              </span>
+            </Field>
+            <Field label="Duration">
+              <span className="font-semibold tabular-nums">
+                {calculateDuration(schedule.start_time, schedule.end_time)}
+              </span>
+            </Field>
+          </Section>
 
-          {/* Schedule Information */}
-          <div className="mb-6 pb-6 border-b">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              Schedule Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Facility
-                </h4>
-                <p className="text-lg text-gray-900">
-                  {schedule.facility_name}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Work Date
-                </h4>
-                <p className="text-lg text-gray-900">
-                  {formatDate(schedule.date)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Time Information */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <ClockIcon className="h-5 w-5 mr-2 text-blue-600" />
-              Shift Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Start Time
-                </h4>
-                <p className="text-lg text-gray-900 font-semibold">
-                  {formatTime(schedule.start_time)}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  End Time
-                </h4>
-                <p className="text-lg text-gray-900 font-semibold">
-                  {schedule.end_time
-                    ? formatTime(schedule.end_time)
-                    : "Open-ended"}
-                </p>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Duration
-                </h4>
-                <p className="text-lg text-gray-900 font-semibold">
-                  {calculateDuration(schedule.start_time, schedule.end_time)}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Additional Information */}
-          <div className="mt-8 pt-6 border-t">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>Schedule Summary:</strong> {schedule.employee_name} (
-                {schedule.employee_role}) is scheduled to work at{" "}
-                {schedule.facility_name} on {formatDate(schedule.date)} from{" "}
+          {/* Summary */}
+          <div className="px-6 py-6">
+            <div className="flex items-start gap-3 rounded border border-paper-line bg-ink/[0.03] p-4">
+              <FormCheck className="mt-0.5" />
+              <p className="text-sm text-ink-soft">
+                <strong className="text-ink">Schedule Summary:</strong>{" "}
+                {schedule.employee_name} ({schedule.employee_role}) is scheduled
+                to work at {schedule.facility_name} on{" "}
+                {formatDate(schedule.date)} from{" "}
                 {formatTime(schedule.start_time)} to{" "}
                 {schedule.end_time
                   ? formatTime(schedule.end_time)
