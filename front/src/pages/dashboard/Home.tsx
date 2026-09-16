@@ -79,10 +79,6 @@ const Home: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchStats();
-  }, []);
-
   const fetchStats = async () => {
     try {
       const response = await axios.get(API_ENDPOINTS.analytics.dashboard);
@@ -92,6 +88,10 @@ const Home: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   return (
     <div className="px-4 py-6 sm:px-8 sm:py-8">
