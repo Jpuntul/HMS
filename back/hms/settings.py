@@ -117,6 +117,18 @@ WSGI_APPLICATION = "hms.wsgi.application"
 # }
 
 # MySQL configuration (active)
+# Managed hosts that require TLS (Aiven, PlanetScale, etc.) need a CA cert
+# passed to mysqlclient explicitly - it doesn't negotiate TLS on its own the
+# way some other MySQL drivers do. Set DB_SSL_CA to the path of a downloaded
+# CA cert to enable it; local/unencrypted MySQL (the default) leaves this
+# unset and OPTIONS carries no "ssl" key at all, so nothing changes for the
+# existing local dev setup.
+_db_options = {
+    "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+}
+if os.getenv("DB_SSL_CA"):
+    _db_options["ssl"] = {"ca": os.getenv("DB_SSL_CA")}
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
@@ -125,9 +137,7 @@ DATABASES = {
         "PASSWORD": os.getenv("DB_PASSWORD", ""),
         "HOST": os.getenv("DB_HOST", "localhost"),
         "PORT": os.getenv("DB_PORT", "3306"),
-        "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+        "OPTIONS": _db_options,
         # Persist connections across requests instead of reconnecting every
         # time (the Django default is CONN_MAX_AGE=0). CONN_HEALTH_CHECKS
         # pings a reused connection before serving it from the pool, so a
