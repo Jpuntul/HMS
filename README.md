@@ -38,9 +38,9 @@ A healthcare management platform built on Django REST Framework and React, with 
 
 ### Backend
 
-- **Django 5.2** - Web framework (uses `models.CompositePrimaryKey` for the join tables)
+- **Django 6** - Web framework (uses `models.CompositePrimaryKey` for the join tables)
 - **Django REST Framework** - RESTful API
-- **MySQL 8.0+** - The database. Required, not optional: the schema uses MySQL `enum` columns and the `Persons.UUID` backfill relies on MySQL's `UUID()`.
+- **MySQL 8.4+** - The database. Required, not optional: the schema uses MySQL `enum` columns and the `Persons.UUID` backfill relies on MySQL's `UUID()`. The 8.4 floor comes from Django 6 itself, which raises `NotSupportedError` below it.
 - **python-dotenv** - Environment variable management
 - **JWT Authentication** - access + refresh tokens via `djangorestframework-simplejwt`
 
@@ -69,7 +69,7 @@ A healthcare management platform built on Django REST Framework and React, with 
 
 - **Python 3.13** (matches CI)
 - **Node.js 16+** (recommended: 18+)
-- **MySQL 8.0+**
+- **MySQL 8.4+**
 - **Git**
 
 ### Installation
