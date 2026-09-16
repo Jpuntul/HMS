@@ -128,6 +128,13 @@ DATABASES = {
         "OPTIONS": {
             "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
         },
+        # Persist connections across requests instead of reconnecting every
+        # time (the Django default is CONN_MAX_AGE=0). CONN_HEALTH_CHECKS
+        # pings a reused connection before serving it from the pool, so a
+        # connection MySQL dropped server-side doesn't surface as a request
+        # error on the next request that picks it up.
+        "CONN_MAX_AGE": int(os.getenv("DB_CONN_MAX_AGE", "600")),
+        "CONN_HEALTH_CHECKS": True,
     }
 }
 

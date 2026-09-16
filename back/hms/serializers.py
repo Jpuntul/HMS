@@ -50,6 +50,17 @@ class EmployeeSerializer(serializers.ModelSerializer):
         fields = ["uuid", "ssn", "role", "person_name", "person_email", "person_phone"]
 
     def get_person_name(self, obj):
+        # The view's queryset annotates this in SQL (`_full_name()` in
+        # views.py) for list/detail reads - N rows, one query, no Python
+        # string-format per row. A create/update response serializes the
+        # plain instance from serializer.save(), which was never annotated
+        # (annotate() only applies to queryset reads), so fall back to the
+        # same computation there - tested: without this fallback, the field
+        # doesn't error, it just silently vanishes from create/update
+        # responses (DRF SkipFields a read_only field with a missing attr).
+        annotated = getattr(obj, "person_name", None)
+        if annotated is not None:
+            return annotated
         p = obj.person
         return f"{p.first_name} {p.last_name}" if p else "Unknown"
 
@@ -77,6 +88,9 @@ class FacilitySerializer(serializers.ModelSerializer):
         ]
 
     def get_general_manager_name(self, obj):
+        annotated = getattr(obj, "general_manager_name", None)
+        if annotated is not None:
+            return annotated
         gm = obj.general_manager
         return f"{gm.first_name} {gm.last_name}" if gm else "Unknown"
 
@@ -114,6 +128,9 @@ class InfectionSerializer(serializers.ModelSerializer):
         ]
 
     def get_person_name(self, obj):
+        annotated = getattr(obj, "person_name", None)
+        if annotated is not None:
+            return annotated
         p = obj.person
         return f"{p.first_name} {p.last_name}" if p else "Unknown"
 
@@ -152,6 +169,9 @@ class VaccinationSerializer(serializers.ModelSerializer):
         ]
 
     def get_person_name(self, obj):
+        annotated = getattr(obj, "person_name", None)
+        if annotated is not None:
+            return annotated
         p = obj.person
         return f"{p.first_name} {p.last_name}" if p else "Unknown"
 
@@ -178,6 +198,9 @@ class EmploymentSerializer(serializers.ModelSerializer):
         ]
 
     def get_employee_name(self, obj):
+        annotated = getattr(obj, "employee_name", None)
+        if annotated is not None:
+            return annotated
         if obj.employee and obj.employee.person:
             p = obj.employee.person
             return f"{p.first_name} {p.last_name}"
@@ -207,6 +230,9 @@ class ScheduleSerializer(serializers.ModelSerializer):
         ]
 
     def get_employee_name(self, obj):
+        annotated = getattr(obj, "employee_name", None)
+        if annotated is not None:
+            return annotated
         if obj.employee and obj.employee.person:
             p = obj.employee.person
             return f"{p.first_name} {p.last_name}"

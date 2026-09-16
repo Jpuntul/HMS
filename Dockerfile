@@ -74,9 +74,18 @@ EXPOSE 8000
 # Workers: (2 x CPU) + 1 is the usual starting point for sync workers. Two is
 # right for a small instance; raise it only when metrics say so, and mind the
 # connection arithmetic (workers x instances vs MySQL max_connections).
+#
+# gthread instead of the sync default: each worker runs multiple threads, so
+# one worker can hold several I/O-bound requests (waiting on MySQL) in flight
+# at once instead of blocking the whole worker on one. Thread count doesn't
+# multiply the MySQL connection arithmetic above by itself - CONN_MAX_AGE
+# (settings.py) means each thread that has queried keeps its own persistent
+# connection, so real ceiling is workers x threads x instances.
 CMD ["sh", "-c", "exec gunicorn hms.wsgi:application \
     --bind 0.0.0.0:${PORT:-8000} \
     --workers ${WEB_CONCURRENCY:-2} \
+    --threads ${GUNICORN_THREADS:-4} \
+    --worker-class gthread \
     --timeout 60 \
     --graceful-timeout 30 \
     --access-logfile - \

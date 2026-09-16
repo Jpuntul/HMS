@@ -19,42 +19,61 @@ def _years_ago(years: int, today: date | None = None) -> date:
 
 @api_view(["GET"])
 def dashboard_stats(request):
-    """Get overall dashboard statistics"""
+    """Get overall dashboard statistics.
 
-    # Basic counts
-    total_persons = Person.objects.count()
-    total_employees = Employee.objects.count()
-    total_facilities = Facility.objects.count()
+    Was 10 sequential round-trips (a count per metric). Down to 6: every
+    scalar count that shares a table with another metric is folded into that
+    metric's aggregate query (person total + age split in one query, facility
+    total + capacity sum in another), and the two remaining totals
+    (employees, facilities-by-type's total) are derived in Python from a
+    grouped query the endpoint needed anyway rather than issued as their own
+    COUNT(*). citizenship_distribution and province_distribution stay
+    separate - they're on different tables (Person vs Facility) and combining
+    them would mean a raw SQL UNION for no real gain at this row count.
+    """
 
-    # Capacity summed in SQL rather than by loading every Facility row.
-    total_capacity = Facility.objects.aggregate(total=Sum("capacity"))["total"] or 0
+    # Person total + age split in one round trip instead of three
+    # (Person.count(), has_dob count, no_dob count).
+    person_stats = Person.objects.aggregate(
+        total=Count("pk"),
+        has_dob=Count("pk", filter=Q(dob__isnull=False)),
+        no_dob=Count("pk", filter=Q(dob__isnull=True)),
+    )
+    total_persons = person_stats["total"]
+    age_distribution = {
+        "has_dob": person_stats["has_dob"],
+        "no_dob": person_stats["no_dob"],
+    }
 
-    # Employee role distribution
-    employee_roles = (
+    # Facility total + capacity sum in one round trip instead of two.
+    facility_stats = Facility.objects.aggregate(
+        total=Count("fid"),
+        total_capacity=Sum("capacity"),
+    )
+    total_facilities = facility_stats["total"]
+    total_capacity = facility_stats["total_capacity"] or 0
+
+    # Employee role distribution. total_employees is the sum of these
+    # per-role counts rather than a separate Employee.objects.count() query.
+    employee_roles = list(
         Employee.objects.values("role").annotate(count=Count("role")).order_by("-count")
     )
+    total_employees = sum(row["count"] for row in employee_roles)
 
-    # Facility type distribution
-    facility_types = (
+    # Facility type distribution.
+    facility_types = list(
         Facility.objects.values("type").annotate(count=Count("type")).order_by("-count")
     )
 
-    # Age distribution (simplified for now since we don't have gender field)
-    # We'll use citizenship as another distribution metric instead
-    age_distribution = {
-        "has_dob": Person.objects.filter(dob__isnull=False).count(),
-        "no_dob": Person.objects.filter(dob__isnull=True).count(),
-    }
-
-    # Citizenship distribution
-    citizenship_distribution = (
+    # Citizenship distribution (top 10).
+    citizenship_distribution = list(
         Person.objects.values("citizenship")
         .annotate(count=Count("citizenship"))
         .order_by("-count")[:10]
-    )  # Top 10 citizenships
+    )
 
-    # Province distribution for facilities
-    province_distribution = (
+    # Province distribution for facilities.
+    province_distribution = list(
         Facility.objects.values("province")
         .annotate(count=Count("province"))
         .order_by("-count")
@@ -68,11 +87,11 @@ def dashboard_stats(request):
                 "total_facilities": total_facilities,
                 "total_capacity": total_capacity,
             },
-            "employee_roles": list(employee_roles),
-            "facility_types": list(facility_types),
+            "employee_roles": employee_roles,
+            "facility_types": facility_types,
             "age_distribution": age_distribution,
-            "citizenship_distribution": list(citizenship_distribution),
-            "province_distribution": list(province_distribution),
+            "citizenship_distribution": citizenship_distribution,
+            "province_distribution": province_distribution,
         }
     )
 
