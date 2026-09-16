@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { ShieldCheckIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Person {
   ssn: number;
@@ -77,9 +78,7 @@ const AddVaccination: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -92,6 +91,13 @@ const AddVaccination: React.FC = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handleFieldChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -150,55 +156,64 @@ const AddVaccination: React.FC = () => {
     navigate("/vaccinations");
   };
 
+  const personOptions = persons.map((person) => ({
+    value: person.ssn.toString(),
+    label: `${person.first_name} ${person.last_name}`,
+  }));
+
+  const typeOptions = vaccineTypes.map((type) => ({
+    value: type.type_id.toString(),
+    label: type.type_name,
+  }));
+
+  const facilityOptions = facilities.map((facility) => ({
+    value: facility.fid.toString(),
+    label: `${facility.name} - ${facility.type} (${facility.city})`,
+  }));
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <ShieldCheckIcon className="h-8 w-8 text-green-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
+        <div className="badge-card p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <ShieldCheckIcon className="h-6 w-6 text-ink" />
+            <h1 className="text-xl font-bold text-ink">
               Add Vaccination Record
             </h1>
           </div>
+          <p className="mb-6 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            Log a new vaccination dose for a patient on file.
+          </p>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink">
+              {errors.general}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label
                 htmlFor="ssn"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Select Person *
+                Select Person <span className="text-stamp-red-ink">*</span>
               </label>
               {personsLoading ? (
-                <div className="text-gray-500">Loading persons...</div>
+                <div className="text-sm text-ink-soft">Loading persons...</div>
               ) : (
-                <select
+                <Dropdown
                   id="ssn"
-                  name="ssn"
                   value={formData.ssn}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                    errors.ssn ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select a person --</option>
-                  {persons.map((person) => (
-                    <option key={person.ssn} value={person.ssn}>
-                      {person.first_name} {person.last_name} (SSN: {person.ssn})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => handleFieldChange("ssn", value)}
+                  options={personOptions}
+                  placeholder="-- Select a person --"
+                />
               )}
               {errors.ssn && (
-                <p className="mt-1 text-sm text-red-600">{errors.ssn}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.ssn}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Select the person who received the vaccination
               </p>
             </div>
@@ -206,41 +221,36 @@ const AddVaccination: React.FC = () => {
             <div>
               <label
                 htmlFor="type_id"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Vaccine Type *
+                Vaccine Type <span className="text-stamp-red-ink">*</span>
               </label>
               {typesLoading ? (
-                <div className="text-gray-500">Loading vaccine types...</div>
+                <div className="text-sm text-ink-soft">
+                  Loading vaccine types...
+                </div>
               ) : (
-                <select
+                <Dropdown
                   id="type_id"
-                  name="type_id"
                   value={formData.type_id}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                    errors.type_id ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select vaccine type --</option>
-                  {vaccineTypes.map((type) => (
-                    <option key={type.type_id} value={type.type_id}>
-                      {type.type_name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => handleFieldChange("type_id", value)}
+                  options={typeOptions}
+                  placeholder="-- Select vaccine type --"
+                />
               )}
               {errors.type_id && (
-                <p className="mt-1 text-sm text-red-600">{errors.type_id}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">
+                  {errors.type_id}
+                </p>
               )}
             </div>
 
             <div>
               <label
                 htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Vaccination Date *
+                Vaccination Date <span className="text-stamp-red-ink">*</span>
               </label>
               <input
                 type="date"
@@ -249,14 +259,12 @@ const AddVaccination: React.FC = () => {
                 value={formData.date}
                 onChange={handleInputChange}
                 max={new Date().toISOString().split("T")[0]}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
+                className="block w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
               />
               {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.date}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Date when the vaccination was administered
               </p>
             </div>
@@ -264,7 +272,7 @@ const AddVaccination: React.FC = () => {
             <div>
               <label
                 htmlFor="no_of_dose"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
                 Dose Number
               </label>
@@ -275,13 +283,15 @@ const AddVaccination: React.FC = () => {
                 value={formData.no_of_dose}
                 onChange={handleInputChange}
                 min="1"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="block w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-sm text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
                 placeholder="e.g., 1, 2, 3"
               />
               {errors.no_of_dose && (
-                <p className="mt-1 text-sm text-red-600">{errors.no_of_dose}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">
+                  {errors.no_of_dose}
+                </p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Which dose in the series (optional)
               </p>
             </div>
@@ -289,42 +299,37 @@ const AddVaccination: React.FC = () => {
             <div>
               <label
                 htmlFor="fid"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
                 Facility
               </label>
               {facilitiesLoading ? (
-                <div className="text-gray-500">Loading facilities...</div>
+                <div className="text-sm text-ink-soft">
+                  Loading facilities...
+                </div>
               ) : (
-                <select
+                <Dropdown
                   id="fid"
-                  name="fid"
                   value={formData.fid}
-                  onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-                >
-                  <option value="">-- Select facility (optional) --</option>
-                  {facilities.map((facility) => (
-                    <option key={facility.fid} value={facility.fid}>
-                      {facility.name} - {facility.type} ({facility.city})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => handleFieldChange("fid", value)}
+                  options={facilityOptions}
+                  placeholder="-- Select facility (optional) --"
+                />
               )}
               {errors.fid && (
-                <p className="mt-1 text-sm text-red-600">{errors.fid}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.fid}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Where the vaccination was administered (optional)
               </p>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end gap-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded-lg border border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
@@ -333,7 +338,7 @@ const AddVaccination: React.FC = () => {
                 disabled={
                   loading || personsLoading || typesLoading || facilitiesLoading
                 }
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Adding..." : "Add Vaccination Record"}
               </button>

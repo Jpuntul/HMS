@@ -7,6 +7,7 @@ import {
   PencilSquareIcon,
   ArrowLeftIcon,
 } from "@heroicons/react/24/outline";
+import FormCheck from "../../components/FormCheck";
 
 interface InfectionData {
   ssn: number;
@@ -15,6 +16,19 @@ interface InfectionData {
   person_name: string;
   infection_type_name: string;
 }
+
+const DetailField: React.FC<{ label: string; children: React.ReactNode }> = ({
+  label,
+  children,
+}) => (
+  <div>
+    <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+      <FormCheck className="h-3.5 w-3.5" />
+      {label}
+    </h3>
+    <div className="text-lg text-ink">{children}</div>
+  </div>
+);
 
 const InfectionDetail: React.FC = () => {
   const { person_uuid, date, type_id } = useParams<{
@@ -60,10 +74,16 @@ const InfectionDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading infection details...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading infection details"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">
+            Loading infection details...
+          </p>
         </div>
       </div>
     );
@@ -71,12 +91,15 @@ const InfectionDetail: React.FC = () => {
 
   if (error || !infection) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <p className="text-red-600 mb-4">
+          <p className="mb-4 text-stamp-red-ink">
             {error || "Infection record not found"}
           </p>
-          <Link to="/infections" className="text-red-600 hover:text-red-700">
+          <Link
+            to="/infections"
+            className="text-ink underline hover:text-ink/80"
+          >
             Back to Infections
           </Link>
         </div>
@@ -85,85 +108,69 @@ const InfectionDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
           <Link
             to="/infections"
-            className="inline-flex items-center text-red-600 hover:text-red-700 mb-4"
+            className="mb-4 inline-flex items-center text-ink-soft transition-colors hover:text-ink"
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <ArrowLeftIcon className="mr-2 h-5 w-5" />
             Back to Infections
           </Link>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <ExclamationTriangleIcon className="h-10 w-10 text-red-600" />
+            <div className="flex items-center gap-3">
+              <ExclamationTriangleIcon className="h-9 w-9 text-ink" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-ink">
                   Infection Record Details
                 </h1>
-                <p className="text-gray-500">
-                  SSN {infection.ssn} · {infection.infection_type_name} ·{" "}
-                  {formatDate(infection.date)}
+                <p className="font-mono text-xs tracking-wide text-ink-soft">
+                  NO. {person_uuid?.slice(0, 8).toUpperCase()} ·{" "}
+                  {infection.infection_type_name} · {formatDate(infection.date)}
                 </p>
               </div>
             </div>
             <Link
               to={ROUTES.infectionEdit(person_uuid!, date!, type_id!)}
-              className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
             >
-              <PencilSquareIcon className="h-5 w-5 mr-2" />
+              <PencilSquareIcon className="h-5 w-5" />
               Edit
             </Link>
           </div>
         </div>
 
         {/* Details Card */}
-        <div className="bg-white rounded-lg shadow-md p-8">
+        <div className="badge-card p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                Person Name
-              </h3>
-              <p className="text-lg text-gray-900">{infection.person_name}</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                SSN
-              </h3>
-              <p className="text-lg text-gray-900">{infection.ssn}</p>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                Infection Type
-              </h3>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <DetailField label="Person Name">
+              {infection.person_name}
+            </DetailField>
+            <DetailField label="Infection Type">
+              <span
+                className="badge-tag"
+                style={{ background: "var(--color-ink-soft)" }}
+              >
                 {infection.infection_type_name}
               </span>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                Infection Date
-              </h3>
-              <p className="text-lg text-gray-900">
-                {formatDate(infection.date)}
-              </p>
-            </div>
+            </DetailField>
+            <DetailField label="Infection Date">
+              {formatDate(infection.date)}
+            </DetailField>
           </div>
 
           {/* Additional Information */}
-          <div className="mt-8 pt-6 border-t">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
+          <div className="mt-8 border-t border-paper-line pt-6">
+            <h3 className="mb-4 text-sm font-bold uppercase tracking-wide text-ink">
               Additional Information
             </h3>
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> This record indicates that the person was
-                diagnosed with {infection.infection_type_name.toLowerCase()} on{" "}
+            <div className="rounded border border-pending-amber/30 bg-pending-amber/5 p-4">
+              <p className="text-sm text-pending-amber-ink">
+                <span className="font-semibold">Note:</span> This record
+                indicates that the person was diagnosed with{" "}
+                {infection.infection_type_name.toLowerCase()} on{" "}
                 {formatDate(infection.date)}. Please ensure proper follow-up
                 care and monitoring.
               </p>

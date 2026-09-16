@@ -1,21 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
+import SearchBar from "../../components/SearchBar";
+import { SkeletonTableRows } from "../../components/Skeleton";
 import { API_ENDPOINTS, ROUTES } from "../../config/api";
 import {
   ShieldCheckIcon,
   PlusIcon,
   CalendarIcon,
-  UserIcon,
   BuildingOfficeIcon,
   EyeIcon,
   PencilIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
-import { useDebounce } from "../../hooks/useDebounce";
+import FormCheck from "../../components/FormCheck";
 
 interface Vaccination {
   person_uuid: string;
@@ -44,29 +45,25 @@ const VaccinationList: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-  useEffect(() => {
-    fetchVaccinations();
-
-    // Show success message from navigation state
-    if (location.state?.message) {
-      setSuccessMessage(location.state.message);
-      setTimeout(() => setSuccessMessage(""), 5000);
-      // Clear the location state
-      window.history.replaceState({}, document.title);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, currentPage]);
-
-  // Reset to page 1 when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm]);
-
   const itemsPerPage = 20;
 
-  const fetchVaccinations = async () => {
+  // Tracks the pending "clear success message" timer so a second message
+  // (or an unmount) can cancel a still-pending one instead of leaking it.
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccessMessage = (message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMessage(message);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const fetchVaccinations = async (signal?: AbortSignal) => {
     try {
       const isInitialLoad = vaccinations.length === 0;
       if (isInitialLoad) {
@@ -79,15 +76,15 @@ const VaccinationList: React.FC = () => {
       params.append("page", currentPage.toString());
       params.append("page_size", itemsPerPage.toString());
 
-      if (debouncedSearchTerm) {
-        params.append("search", debouncedSearchTerm);
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
 
       if (params.toString()) {
         url += `?${params.toString()}`;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, { signal });
       // Handle paginated response
       const data = response.data.results || response.data;
       setVaccinations(Array.isArray(data) ? data : []);
@@ -96,11 +93,36 @@ const VaccinationList: React.FC = () => {
         Math.ceil((response.data.count || data.length) / itemsPerPage),
       );
       setLoading(false);
-    } catch {
+    } catch (err) {
+      if (axios.isCancel(err)) return;
       setError("Failed to fetch vaccinations");
       setLoading(false);
     }
   };
+
+  // Success message from navigation state (e.g. after Add/Edit) is a
+  // one-off tied to how we arrived here, not to search/page state - it has
+  // its own effect so a page change doesn't re-trigger it.
+  useEffect(() => {
+    if (location.state?.message) {
+      showSuccessMessage(location.state.message);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Single source of truth for fetching: page reset on search change happens
+  // synchronously in the change handler below (not a second effect reacting
+  // to the same state), so this effect fires once per settled (search, page)
+  // combination instead of twice. SearchBar debounces internally, so
+  // searchTerm here is already the settled value. The AbortController
+  // cancels a still-in-flight request if a newer one starts before it
+  // resolves.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchVaccinations(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, currentPage]);
 
   const handleDeleteClick = (vaccination: Vaccination) => {
     setVaccinationToDelete(vaccination);
@@ -109,8 +131,7 @@ const VaccinationList: React.FC = () => {
 
   const handleDeleteConfirm = () => {
     fetchVaccinations();
-    setSuccessMessage("Vaccination record deleted successfully!");
-    setTimeout(() => setSuccessMessage(""), 5000);
+    showSuccessMessage("Vaccination record deleted successfully!");
   };
 
   const handleDeleteCancel = () => {
@@ -118,49 +139,70 @@ const VaccinationList: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
-  const getDoseBadgeColor = (dose: number) => {
-    if (dose === 1) return "bg-blue-100 text-blue-800";
-    if (dose === 2) return "bg-green-100 text-green-800";
-    return "bg-purple-100 text-purple-800";
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading vaccinations...</div>
+      <div className="min-h-screen bg-paper py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="overflow-x-auto rounded border-[1.5px] border-ink bg-panel">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b-[1.5px] border-ink text-left text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                  <th className="px-5 py-3">Person</th>
+                  <th className="px-5 py-3">Vaccine Type</th>
+                  <th className="px-5 py-3">Dose</th>
+                  <th className="px-5 py-3">Date</th>
+                  <th className="px-5 py-3">Facility</th>
+                  <th className="px-5 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <SkeletonTableRows columns={6} />
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-red-600">{error}</div>
+      <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div className="rounded-lg border border-stamp-red/30 bg-stamp-red/5 px-6 py-4 text-stamp-red-ink">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600">{successMessage}</p>
+          <div className="mb-6 rounded border border-verified-green/30 bg-verified-green/5 p-4">
+            <p className="text-sm font-medium text-verified-green-ink">
+              {successMessage}
+            </p>
           </div>
         )}
 
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <ShieldCheckIcon className="h-8 w-8 text-green-600" />
+        <div className="mb-8 rounded border-[1.5px] border-ink bg-panel">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <ShieldCheckIcon className="h-7 w-7 flex-shrink-0 text-ink" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
+                  <h1 className="text-2xl font-bold text-ink">
                     Vaccination Records
                   </h1>
-                  <p className="text-gray-600 mt-2">
+                  <p className="mt-1 text-sm text-ink-soft">
                     Track and manage vaccination history
                   </p>
                 </div>
@@ -169,7 +211,7 @@ const VaccinationList: React.FC = () => {
                 <div className="flex space-x-3">
                   <Link
                     to="/vaccinations/add"
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
                   >
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Vaccination Record</span>
@@ -180,127 +222,123 @@ const VaccinationList: React.FC = () => {
           </div>
 
           {/* Search Bar */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <input
-              type="text"
+          <div className="border-b border-paper-line px-6 py-4">
+            <SearchBar
+              searchTerm={searchTerm}
+              onSearchChange={handleSearchChange}
               placeholder="Search by person name, vaccine type, or facility..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              label="Search"
+              id="vaccination-search"
             />
           </div>
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {totalCount}
-                </div>
-                <div className="text-green-800 font-medium">
-                  Total Vaccinations
-                </div>
+          <div className="flex flex-wrap items-stretch border-t-[1.5px] border-ink">
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {totalCount}
               </div>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {new Set(vaccinations.map((v) => v.ssn)).size}
-                </div>
-                <div className="text-blue-800 font-medium">
-                  Vaccinated People
-                </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL VACCINATIONS
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {new Set(vaccinations.map((v) => v.vaccine_type_name)).size}
-                </div>
-                <div className="text-purple-800 font-medium">Vaccine Types</div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-verified-green-ink">
+                {new Set(vaccinations.map((v) => v.ssn)).size}
               </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-yellow-600">
-                  {vaccinations.length > 0
-                    ? (
-                        vaccinations.reduce((acc, v) => acc + v.no_of_dose, 0) /
-                        vaccinations.length
-                      ).toFixed(1)
-                    : 0}
-                </div>
-                <div className="text-yellow-800 font-medium">Average Dose</div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                VACCINATED PEOPLE
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {new Set(vaccinations.map((v) => v.vaccine_type_name)).size}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                VACCINE TYPES
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-pending-amber-ink">
+                {vaccinations.length > 0
+                  ? (
+                      vaccinations.reduce((acc, v) => acc + v.no_of_dose, 0) /
+                      vaccinations.length
+                    ).toFixed(1)
+                  : 0}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                AVERAGE DOSE
               </div>
             </div>
           </div>
         </div>
 
         {/* Vaccinations Table */}
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Person
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Vaccine Type
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Dose
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Facility
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+        <div className="overflow-x-auto rounded border-[1.5px] border-ink bg-panel">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b-[1.5px] border-ink text-left text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <th className="px-5 py-3">Person</th>
+                <th className="px-5 py-3">Vaccine Type</th>
+                <th className="px-5 py-3">Dose</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3">Facility</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {vaccinations.map((vaccination, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <UserIcon className="h-5 w-5 text-gray-400 mr-2" />
-                      <div className="text-sm font-medium text-gray-900">
+                <tr
+                  key={index}
+                  className="border-b border-paper-line last:border-b-0 hover:bg-black/[0.02]"
+                >
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <FormCheck />
+                      <span className="text-sm font-medium text-ink">
                         {vaccination.person_name}
-                      </div>
+                      </span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                  <td className="px-5 py-3">
+                    <span
+                      className="badge-tag"
+                      style={{ background: "var(--color-ink-soft)" }}
+                    >
                       {vaccination.vaccine_type_name}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-5 py-3">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getDoseBadgeColor(
-                        vaccination.no_of_dose,
-                      )}`}
+                      className="badge-tag"
+                      style={{ background: "var(--color-ink-soft)" }}
                     >
                       Dose {vaccination.no_of_dose}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-900">
-                      <CalendarIcon className="h-4 w-4 text-gray-400 mr-2" />
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2 text-sm tabular-nums text-ink">
+                      <CalendarIcon className="h-4 w-4 text-ink-soft" />
                       {new Date(vaccination.date).toLocaleDateString()}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2 text-sm text-ink-soft">
+                      <BuildingOfficeIcon className="h-4 w-4 text-ink-soft" />
                       {vaccination.facility_name}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex justify-end gap-3">
                       <Link
                         to={ROUTES.vaccinationDetail(
                           vaccination.person_uuid,
                           vaccination.type_id,
                           vaccination.date,
                         )}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-ink-soft transition-colors hover:text-ink"
+                        aria-label={`View vaccination record for ${vaccination.person_name}`}
                         title="View Details"
                       >
                         <EyeIcon className="h-5 w-5" />
@@ -313,14 +351,16 @@ const VaccinationList: React.FC = () => {
                               vaccination.type_id,
                               vaccination.date,
                             )}
-                            className="text-green-600 hover:text-green-900"
+                            className="text-ink-soft transition-colors hover:text-verified-green-ink"
+                            aria-label={`Edit vaccination record for ${vaccination.person_name}`}
                             title="Edit"
                           >
                             <PencilIcon className="h-5 w-5" />
                           </Link>
                           <button
                             onClick={() => handleDeleteClick(vaccination)}
-                            className="text-red-600 hover:text-red-900"
+                            className="text-ink-soft transition-colors hover:text-stamp-red-ink"
+                            aria-label={`Delete vaccination record for ${vaccination.person_name}`}
                             title="Delete"
                           >
                             <TrashIcon className="h-5 w-5" />
@@ -335,12 +375,12 @@ const VaccinationList: React.FC = () => {
           </table>
 
           {vaccinations.length === 0 && (
-            <div className="text-center py-12">
-              <ShieldCheckIcon className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <div className="py-12 text-center">
+              <ShieldCheckIcon className="mx-auto h-12 w-12 text-ink-soft/30" />
+              <h3 className="mt-2 text-sm font-medium text-ink">
                 No vaccination records found
               </h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 {searchTerm
                   ? "Try adjusting your search terms"
                   : "Get started by adding a new vaccination record"}

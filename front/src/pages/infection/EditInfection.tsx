@@ -3,6 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
+import FormCheck from "../../components/FormCheck";
 
 interface InfectionType {
   type_id: number;
@@ -64,13 +66,11 @@ const EditInfection: React.FC = () => {
     fetchData();
   }, [person_uuid, date, type_id, navigate]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "type_id" ? parseInt(value) : value,
+      [name]: value,
     }));
 
     // Clear error when user starts typing
@@ -79,6 +79,13 @@ const EditInfection: React.FC = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handleTypeChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, type_id: parseInt(value) }));
+    if (errors.type_id) {
+      setErrors((prev) => ({ ...prev, type_id: "" }));
     }
   };
 
@@ -136,85 +143,92 @@ const EditInfection: React.FC = () => {
     navigate("/infections");
   };
 
+  const typeOptions = infectionTypes.map((type) => ({
+    value: type.type_id.toString(),
+    label: type.type_name,
+  }));
+
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading infection data...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading infection data"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">
+            Loading infection data...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <PencilSquareIcon className="h-8 w-8 text-red-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
+        <div className="badge-card p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <PencilSquareIcon className="h-6 w-6 text-ink" />
+            <h1 className="text-xl font-bold text-ink">
               Edit Infection Record
             </h1>
           </div>
+          <p className="mb-6 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            Update this patient's infection case.
+          </p>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink">
+              {errors.general}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+            <div className="rounded border border-paper-line bg-ink/[0.03] p-4">
+              <h3 className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                <FormCheck className="h-3.5 w-3.5" />
                 Infection Information
               </h3>
-              <p className="text-sm text-gray-600">
-                <strong>Person:</strong> {personName}
-              </p>
-              <p className="text-sm text-gray-600">
-                <strong>SSN:</strong> {formData.ssn}
+              <p className="text-sm text-ink">
+                <span className="font-semibold">Person:</span> {personName}
               </p>
             </div>
 
             <div>
               <label
                 htmlFor="type_id"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Infection Type *
+                Infection Type <span className="text-stamp-red-ink">*</span>
               </label>
               {typesLoading ? (
-                <div className="text-gray-500">Loading infection types...</div>
+                <div className="text-sm text-ink-soft">
+                  Loading infection types...
+                </div>
               ) : (
-                <select
+                <Dropdown
                   id="type_id"
-                  name="type_id"
-                  value={formData.type_id}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.type_id ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select infection type --</option>
-                  {infectionTypes.map((type) => (
-                    <option key={type.type_id} value={type.type_id}>
-                      {type.type_name}
-                    </option>
-                  ))}
-                </select>
+                  value={formData.type_id ? formData.type_id.toString() : ""}
+                  onChange={handleTypeChange}
+                  options={typeOptions}
+                  placeholder="-- Select infection type --"
+                />
               )}
               {errors.type_id && (
-                <p className="mt-1 text-sm text-red-600">{errors.type_id}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">
+                  {errors.type_id}
+                </p>
               )}
             </div>
 
             <div>
               <label
                 htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Infection Date *
+                Infection Date <span className="text-stamp-red-ink">*</span>
               </label>
               <input
                 type="date"
@@ -223,28 +237,26 @@ const EditInfection: React.FC = () => {
                 value={formData.date}
                 onChange={handleInputChange}
                 max={new Date().toISOString().split("T")[0]}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
+                className="block w-full rounded-lg border border-paper-line bg-paper px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
               />
               {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.date}</p>
               )}
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end gap-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || typesLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Updating..." : "Update Infection Record"}
               </button>

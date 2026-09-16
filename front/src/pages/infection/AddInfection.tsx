@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Person {
   ssn: number;
@@ -58,9 +59,7 @@ const AddInfection: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -73,6 +72,13 @@ const AddInfection: React.FC = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handleFieldChange = (name: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -124,55 +130,57 @@ const AddInfection: React.FC = () => {
     navigate("/infections");
   };
 
+  const personOptions = persons.map((person) => ({
+    value: person.ssn.toString(),
+    label: `${person.first_name} ${person.last_name}`,
+  }));
+
+  const typeOptions = infectionTypes.map((type) => ({
+    value: type.type_id.toString(),
+    label: type.type_name,
+  }));
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <ExclamationTriangleIcon className="h-8 w-8 text-red-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Add Infection Record
-            </h1>
+        <div className="rounded border-[1.5px] border-ink bg-panel p-8">
+          <div className="mb-1 flex items-center gap-2.5">
+            <ExclamationTriangleIcon className="h-6 w-6 text-ink" />
+            <h1 className="text-xl font-bold text-ink">Add Infection Record</h1>
           </div>
+          <p className="mb-6 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            Log a new infection case for a patient on file.
+          </p>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink">
+              {errors.general}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" noValidate>
             <div>
               <label
                 htmlFor="ssn"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Select Person *
+                Select Person <span className="text-stamp-red-ink">*</span>
               </label>
               {personsLoading ? (
-                <div className="text-gray-500">Loading persons...</div>
+                <div className="text-sm text-ink-soft">Loading persons...</div>
               ) : (
-                <select
+                <Dropdown
                   id="ssn"
-                  name="ssn"
                   value={formData.ssn}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.ssn ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select a person --</option>
-                  {persons.map((person) => (
-                    <option key={person.ssn} value={person.ssn}>
-                      {person.first_name} {person.last_name} (SSN: {person.ssn})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => handleFieldChange("ssn", value)}
+                  options={personOptions}
+                  placeholder="-- Select a person --"
+                />
               )}
               {errors.ssn && (
-                <p className="mt-1 text-sm text-red-600">{errors.ssn}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.ssn}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Select the person who has the infection
               </p>
             </div>
@@ -180,41 +188,36 @@ const AddInfection: React.FC = () => {
             <div>
               <label
                 htmlFor="type_id"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Infection Type *
+                Infection Type <span className="text-stamp-red-ink">*</span>
               </label>
               {typesLoading ? (
-                <div className="text-gray-500">Loading infection types...</div>
+                <div className="text-sm text-ink-soft">
+                  Loading infection types...
+                </div>
               ) : (
-                <select
+                <Dropdown
                   id="type_id"
-                  name="type_id"
                   value={formData.type_id}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                    errors.type_id ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select infection type --</option>
-                  {infectionTypes.map((type) => (
-                    <option key={type.type_id} value={type.type_id}>
-                      {type.type_name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => handleFieldChange("type_id", value)}
+                  options={typeOptions}
+                  placeholder="-- Select infection type --"
+                />
               )}
               {errors.type_id && (
-                <p className="mt-1 text-sm text-red-600">{errors.type_id}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">
+                  {errors.type_id}
+                </p>
               )}
             </div>
 
             <div>
               <label
                 htmlFor="date"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
-                Infection Date *
+                Infection Date <span className="text-stamp-red-ink">*</span>
               </label>
               <input
                 type="date"
@@ -223,31 +226,29 @@ const AddInfection: React.FC = () => {
                 value={formData.date}
                 onChange={handleInputChange}
                 max={new Date().toISOString().split("T")[0]}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 ${
-                  errors.date ? "border-red-500" : "border-gray-300"
-                }`}
+                className="block w-full rounded border-[1.5px] border-paper-line bg-panel px-3 py-2 text-sm text-ink focus:border-ink focus:outline-none"
               />
               {errors.date && (
-                <p className="mt-1 text-sm text-red-600">{errors.date}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.date}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Date when the infection was diagnosed
               </p>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end gap-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || personsLoading || typesLoading}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Adding..." : "Add Infection Record"}
               </button>
