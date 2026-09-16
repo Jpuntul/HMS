@@ -5,6 +5,24 @@ from django.db import models
 from django.utils import timezone
 
 
+class DashedUUIDField(models.UUIDField):
+    """UUIDField that always sends the 36-char dashed string to the DB.
+
+    Django's MySQL backend normally sends 32-char undashed hex
+    (`value.hex`) when `has_native_uuid_field` is False, but the `UUID`
+    column here is `char(36)` holding the dashed form (raw-SQL backfill,
+    see notes/private/UUID_URLS_2026-05-26.md) - undashed vs. dashed never
+    matched on `WHERE` lookups, breaking every detail/edit route.
+    """
+
+    def get_db_prep_value(self, value, connection, prepared=False):
+        if value is None:
+            return None
+        if not isinstance(value, uuid.UUID):
+            value = self.to_python(value)
+        return str(value)
+
+
 class AuditLogEntry(models.Model):
     """Who did what to which record, and when.
 
@@ -105,7 +123,7 @@ class Person(SoftDeleteModelMixin, models.Model):
     # Opaque public identifier. Used in every URL that historically would have
     # contained SSN or Medicare. Existing rows were backfilled via MySQL's
     # UUID() function; new rows get a fresh v4 via the default.
-    uuid = models.UUIDField(
+    uuid = DashedUUIDField(
         unique=True, default=uuid.uuid4, editable=False, db_column="UUID"
     )
 
