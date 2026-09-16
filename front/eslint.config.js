@@ -12,12 +12,20 @@ export default defineConfig([
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs["recommended-latest"],
+      reactHooks.configs.flat["recommended-latest"],
       reactRefresh.configs.vite,
     ],
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+    rules: {
+      // v7's react-hooks/set-state-in-effect flags the standard
+      // fetch-in-useEffect-then-setState pattern used throughout this app's
+      // list/detail pages. That pattern is intentional here (no data-fetching
+      // library in use) rather than a bug, so the rule is off rather than
+      // suppressed call-by-call.
+      "react-hooks/set-state-in-effect": "off",
     },
   },
 ]);

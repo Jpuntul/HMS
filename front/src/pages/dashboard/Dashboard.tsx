@@ -228,10 +228,6 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
-
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
@@ -267,6 +263,10 @@ const Dashboard: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   // These derived values and chart datasets used to live after the
   // loading/error early-returns below - reallocated (and every .map/.reduce
