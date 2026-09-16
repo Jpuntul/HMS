@@ -16,6 +16,14 @@ interface PersonFormData {
   occupation?: string;
 }
 
+const fieldClass = (hasError: boolean) =>
+  `block w-full border-0 border-b-2 bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-0 disabled:opacity-50 ${
+    hasError ? "border-stamp-red" : "border-paper-line focus:border-ink"
+  }`;
+
+const labelClass =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft";
+
 const AddPerson: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
@@ -105,28 +113,28 @@ const AddPerson: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <UserPlusIcon className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Add New Person</h1>
+    <div className="min-h-screen bg-paper py-8">
+      <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
+        <div className="badge-card p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <UserPlusIcon className="h-7 w-7 flex-shrink-0 text-ink" />
+            <h1 className="text-2xl font-bold text-ink">Add New Person</h1>
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div
+              role="alert"
+              className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {errors.general}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Required Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label
-                  htmlFor="first_name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label htmlFor="first_name" className={labelClass}>
                   First Name *
                 </label>
                 <input
@@ -135,23 +143,18 @@ const AddPerson: React.FC = () => {
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.first_name ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={fieldClass(!!errors.first_name)}
                   placeholder="Enter first name"
                 />
                 {errors.first_name && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-stamp-red-ink">
                     {errors.first_name}
                   </p>
                 )}
               </div>
 
               <div>
-                <label
-                  htmlFor="last_name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label htmlFor="last_name" className={labelClass}>
                   Last Name *
                 </label>
                 <input
@@ -160,25 +163,20 @@ const AddPerson: React.FC = () => {
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.last_name ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={fieldClass(!!errors.last_name)}
                   placeholder="Enter last name"
                 />
                 {errors.last_name && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-stamp-red-ink">
                     {errors.last_name}
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <label
-                  htmlFor="ssn"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label htmlFor="ssn" className={labelClass}>
                   SSN *
                 </label>
                 <input
@@ -187,21 +185,18 @@ const AddPerson: React.FC = () => {
                   name="ssn"
                   value={formData.ssn}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.ssn ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={fieldClass(!!errors.ssn)}
                   placeholder="xxx-xx-xxxx"
                 />
                 {errors.ssn && (
-                  <p className="mt-1 text-sm text-red-600">{errors.ssn}</p>
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.ssn}
+                  </p>
                 )}
               </div>
 
               <div>
-                <label
-                  htmlFor="medicare"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
+                <label htmlFor="medicare" className={labelClass}>
                   Medicare Number *
                 </label>
                 <input
@@ -210,22 +205,19 @@ const AddPerson: React.FC = () => {
                   name="medicare"
                   value={formData.medicare}
                   onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    errors.medicare ? "border-red-500" : "border-gray-300"
-                  }`}
+                  className={fieldClass(!!errors.medicare)}
                   placeholder="Enter Medicare number"
                 />
                 {errors.medicare && (
-                  <p className="mt-1 text-sm text-red-600">{errors.medicare}</p>
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.medicare}
+                  </p>
                 )}
               </div>
             </div>
 
             <div>
-              <label
-                htmlFor="dob"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
+              <label htmlFor="dob" className={labelClass}>
                 Date of Birth *
               </label>
               <input
@@ -234,27 +226,22 @@ const AddPerson: React.FC = () => {
                 name="dob"
                 value={formData.dob}
                 onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.dob ? "border-red-500" : "border-gray-300"
-                }`}
+                className={fieldClass(!!errors.dob)}
               />
               {errors.dob && (
-                <p className="mt-1 text-sm text-red-600">{errors.dob}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.dob}</p>
               )}
             </div>
 
             {/* Optional Fields */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="border-t border-paper-line pt-6">
+              <h3 className="mb-4 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 Optional Information
               </h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                  <label htmlFor="email" className={labelClass}>
                     Email
                   </label>
                   <input
@@ -263,21 +250,18 @@ const AddPerson: React.FC = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.email ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.email)}
                     placeholder="example@email.com"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.email}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="telephone"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                  <label htmlFor="telephone" className={labelClass}>
                     Phone Number
                   </label>
                   <input
@@ -286,18 +270,15 @@ const AddPerson: React.FC = () => {
                     name="telephone"
                     value={formData.telephone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={fieldClass(false)}
                     placeholder="(123) 456-7890"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+              <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label
-                    htmlFor="citizenship"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                  <label htmlFor="citizenship" className={labelClass}>
                     Citizenship
                   </label>
                   <input
@@ -306,16 +287,13 @@ const AddPerson: React.FC = () => {
                     name="citizenship"
                     value={formData.citizenship}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={fieldClass(false)}
                     placeholder="e.g., US Citizen"
                   />
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="occupation"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
+                  <label htmlFor="occupation" className={labelClass}>
                     Occupation
                   </label>
                   <input
@@ -324,7 +302,7 @@ const AddPerson: React.FC = () => {
                     name="occupation"
                     value={formData.occupation}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className={fieldClass(false)}
                     placeholder="Enter occupation"
                   />
                 </div>
@@ -332,18 +310,18 @@ const AddPerson: React.FC = () => {
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end space-x-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Adding..." : "Add Person"}
               </button>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, Link } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../contexts/AuthContext";
@@ -6,20 +6,10 @@ import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import Pagination from "../../components/Pagination";
-import { API_ENDPOINTS, ROUTES } from "../../config/api";
-import {
-  UserIcon,
-  PlusIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  BriefcaseIcon,
-  IdentificationIcon,
-  CalendarDaysIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-} from "@heroicons/react/24/outline";
-import { useDebounce } from "../../hooks/useDebounce";
+import { SkeletonCards } from "../../components/Skeleton";
+import PersonCard from "../../components/PersonCard";
+import { API_ENDPOINTS } from "../../config/api";
+import { UserIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 export interface Person {
   uuid: string;
@@ -56,8 +46,8 @@ const PersonList: React.FC = () => {
     Array<{ value: string; label: string }>
   >([]);
 
-  // Debounce search term to reduce API calls
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  // SearchBar debounces internally now and only calls setSearchTerm once
+  // typing settles, so searchTerm here is already the settled value.
 
   // Fetch filter options on component mount
   useEffect(() => {
@@ -84,7 +74,23 @@ const PersonList: React.FC = () => {
 
   const itemsPerPage = 18;
 
-  const fetchPersons = async () => {
+  // Tracks the pending "clear success message" timer so a second message
+  // (or an unmount) can cancel a still-pending one instead of leaking it.
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccessMessage = (message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMessage(message);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const fetchPersons = async (signal?: AbortSignal) => {
     try {
       // Only show loading screen on initial load
       const isInitialLoad = persons.length === 0;
@@ -98,8 +104,8 @@ const PersonList: React.FC = () => {
       params.append("page", currentPage.toString());
       params.append("page_size", itemsPerPage.toString());
 
-      if (debouncedSearchTerm) {
-        params.append("search", debouncedSearchTerm);
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
       if (citizenshipFilter) {
         params.append("citizenship", citizenshipFilter);
@@ -112,7 +118,7 @@ const PersonList: React.FC = () => {
         url += `?${params.toString()}`;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, { signal });
       const data = response.data.results || response.data;
       setPersons(data);
       setFilteredPersons(data);
@@ -120,46 +126,47 @@ const PersonList: React.FC = () => {
       setTotalPages(
         Math.ceil((response.data.count || data.length) / itemsPerPage),
       );
+      setLoading(false);
     } catch (error) {
+      if (axios.isCancel(error)) return;
       console.error(error);
-    } finally {
       setLoading(false);
     }
   };
 
+  // Success message from navigation state (e.g. after Add/Edit) is a
+  // one-off tied to how we arrived here, not to search/filter/page state -
+  // it has its own effect so filter changes don't re-trigger it.
   useEffect(() => {
-    // Check for success message from navigation state
     if (location.state?.message) {
-      setSuccessMessage(location.state.message);
-      // Clear the message after 5 seconds
-      setTimeout(() => setSuccessMessage(""), 5000);
+      showSuccessMessage(location.state.message);
     }
+  }, [location.state]);
 
-    fetchPersons();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    location.state,
-    debouncedSearchTerm,
-    citizenshipFilter,
-    occupationFilter,
-    currentPage,
-  ]);
-
-  // Reset to page 1 when search/filters change
+  // Single source of truth for fetching: page reset on filter/search change
+  // happens synchronously in the change handlers below (not a second effect
+  // reacting to the same state), so this effect fires once per settled
+  // (search, filters, page) combination instead of twice. The AbortController
+  // cancels a still-in-flight request if a newer one starts before it
+  // resolves, so a slow earlier response can never overwrite a later one.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, citizenshipFilter, occupationFilter]);
+    const controller = new AbortController();
+    fetchPersons(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, citizenshipFilter, occupationFilter, currentPage]);
 
-  const handleDeleteClick = (person: Person) => {
+  // Stable reference so PersonCard's React.memo isn't defeated by a new
+  // function identity on every PersonList render.
+  const handleDeleteClick = useCallback((person: Person) => {
     setPersonToDelete(person);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = () => {
     // Refresh the list after deletion
     fetchPersons();
-    setSuccessMessage("Person deleted successfully!");
-    setTimeout(() => setSuccessMessage(""), 5000);
+    showSuccessMessage("Person deleted successfully!");
   };
 
   const handleDeleteCancel = () => {
@@ -167,28 +174,46 @@ const PersonList: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
+  // Reset to page 1 synchronously with the filter/search change itself
+  // (rather than in a separate effect reacting to the new value) so the
+  // fetch effect above sees the settled (filter, page) pair in one go.
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleCitizenshipChange = (value: string) => {
+    setCitizenshipFilter(value);
+    setCurrentPage(1);
+  };
+
+  const handleOccupationChange = (value: string) => {
+    setOccupationFilter(value);
+    setCurrentPage(1);
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="text-center">Loading...</div>
+      <div className="min-h-screen bg-paper py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SkeletonCards columns="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <UserIcon className="h-8 w-8 text-blue-600" />
+        <div className="mb-8 rounded border-[1.5px] border-ink bg-panel">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <UserIcon className="h-7 w-7 flex-shrink-0 text-ink" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Person Management
-                  </h1>
-                  <p className="text-gray-600 mt-2">
+                  <h1 className="text-2xl font-bold text-ink">Patients</h1>
+                  <p className="mt-1 text-sm text-ink-soft">
                     Manage patient records and personal information
                   </p>
                 </div>
@@ -197,7 +222,7 @@ const PersonList: React.FC = () => {
                 <div className="flex space-x-3">
                   <Link
                     to="/persons/add"
-                    className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 font-medium"
+                    className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
                   >
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Person</span>
@@ -208,163 +233,90 @@ const PersonList: React.FC = () => {
           </div>
 
           {/* Search and Filter */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="border-b border-paper-line px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="md:col-span-2">
                 <SearchBar
                   searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
+                  onSearchChange={handleSearchChange}
                   placeholder="Search by name, SSN, Medicare, email..."
                   label="Search"
+                  id="person-search"
                 />
               </div>
               <FilterDropdown
                 label="Citizenship"
                 value={citizenshipFilter}
-                onChange={setCitizenshipFilter}
+                onChange={handleCitizenshipChange}
                 options={citizenshipOptions}
+                id="person-citizenship-filter"
               />
               <FilterDropdown
                 label="Occupation"
                 value={occupationFilter}
-                onChange={setOccupationFilter}
+                onChange={handleOccupationChange}
                 options={occupationOptions}
+                id="person-occupation-filter"
               />
             </div>
           </div>
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {totalCount}
-                </div>
-                <div className="text-blue-800 font-medium">Total Persons</div>
+          <div className="flex flex-wrap items-stretch border-t-[1.5px] border-ink">
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {totalCount}
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {persons.filter((p) => p.email).length}
-                </div>
-                <div className="text-green-800 font-medium">With Email</div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL PERSONS
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {persons.filter((p) => p.occupation).length}
-                </div>
-                <div className="text-purple-800 font-medium">
-                  With Occupation
-                </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-verified-green-ink">
+                {persons.filter((p) => p.email).length}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                WITH EMAIL
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-pending-amber-ink">
+                {persons.filter((p) => p.occupation).length}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                WITH OCCUPATION
               </div>
             </div>
           </div>
         </div>
 
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600">{successMessage}</p>
+          <div className="mb-6 rounded border border-verified-green/30 bg-verified-green/5 p-4">
+            <p className="text-sm font-medium text-verified-green-ink">
+              {successMessage}
+            </p>
           </div>
         )}
 
         {/* Person Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPersons.map((person) => (
-            <div
+            <PersonCard
               key={person.medicare}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {person.first_name} {person.last_name}
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
-                  <div className="flex items-center space-x-2">
-                    <IdentificationIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">SSN:</span>
-                    <span>{person.ssn}</span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <IdentificationIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">Medicare:</span>
-                    <span>{person.medicare}</span>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <CalendarDaysIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">DOB:</span>
-                    <span>{person.dob}</span>
-                  </div>
-
-                  {person.email && (
-                    <div className="flex items-center space-x-2">
-                      <EnvelopeIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Email:</span>
-                      <span className="truncate">{person.email}</span>
-                    </div>
-                  )}
-
-                  {person.telephone && (
-                    <div className="flex items-center space-x-2">
-                      <PhoneIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Phone:</span>
-                      <span>{person.telephone}</span>
-                    </div>
-                  )}
-
-                  {person.occupation && (
-                    <div className="flex items-center space-x-2">
-                      <BriefcaseIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Occupation:</span>
-                      <span>{person.occupation}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="flex space-x-2">
-                    <Link
-                      to={ROUTES.personDetail(person.uuid)}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
-                    >
-                      <EyeIcon className="h-3 w-3" />
-                      <span>Details</span>
-                    </Link>
-                    {user && (
-                      <>
-                        <Link
-                          to={ROUTES.personEdit(person.uuid)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
-                        >
-                          <PencilIcon className="h-3 w-3" />
-                          <span>Edit</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteClick(person)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
-                        >
-                          <TrashIcon className="h-3 w-3" />
-                          <span>Delete</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+              person={person}
+              canWrite={!!user}
+              onDeleteClick={handleDeleteClick}
+            />
           ))}
         </div>
 
         {persons.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <UserIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <div className="text-xl font-medium text-gray-900 mb-2">
+          <div className="rounded-xl border border-dashed border-paper-line bg-paper p-12 text-center">
+            <UserIcon className="mx-auto mb-4 h-16 w-16 text-ink-soft/30" />
+            <div className="mb-2 text-xl font-medium text-ink">
               No persons found
             </div>
-            <div className="text-gray-600">
+            <div className="text-ink-soft">
               There are no persons in the system.
             </div>
           </div>

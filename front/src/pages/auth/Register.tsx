@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import {
-  UserPlusIcon,
   UserIcon,
   EnvelopeIcon,
   LockClosedIcon,
   EyeIcon,
   EyeSlashIcon,
-  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 
 const Register: React.FC = () => {
@@ -106,248 +104,246 @@ const Register: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+          role="status"
+          aria-label="Loading"
+        ></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-            <UserPlusIcon className="h-6 w-6 text-white" />
+    <div className="flex min-h-screen items-center justify-center bg-paper px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Sign-in-panel system - same treatment as Login.tsx */}
+        <div className="animate-panel-rise relative rounded-xl border-[1.5px] border-ink bg-panel p-8">
+          {/* Panel heading */}
+          <div className="mb-1 flex items-center gap-2.5">
+            <span className="text-lg font-bold tracking-tight text-ink">
+              HMS
+            </span>
+            <h1 className="text-xl font-bold text-ink">
+              Register New Staff User
+            </h1>
           </div>
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Register New Staff User
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Create a new account for HMS staff members
+          <p className="mb-8 border-b border-paper-line pb-6 text-sm text-ink-soft">
+            Create a new account for HMS staff members.
           </p>
-        </div>
 
-        {/* Success Message */}
-        {successMessage && (
-          <div className="rounded-lg bg-green-50 border border-green-200 p-4">
-            <p className="text-sm text-green-800">{successMessage}</p>
-          </div>
-        )}
-
-        {/* Register Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-3">
-              <ExclamationTriangleIcon className="h-5 w-5 text-red-600 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
+          {successMessage && (
+            <div className="mb-6 rounded-lg border border-verified-green/30 bg-verified-green/5 px-4 py-3 text-sm font-medium text-verified-green-ink">
+              {successMessage}
             </div>
           )}
 
-          <div className="space-y-4">
-            {/* Name Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="first_name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  First Name
-                </label>
-                <input
-                  id="first_name"
-                  name="first_name"
-                  type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="First name"
-                  value={formData.first_name}
-                  onChange={handleInputChange}
-                  disabled={isSubmitting}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="last_name"
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Last Name
-                </label>
-                <input
-                  id="last_name"
-                  name="last_name"
-                  type="text"
-                  className="block w-full px-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Last name"
-                  value={formData.last_name}
-                  onChange={handleInputChange}
-                  disabled={isSubmitting}
-                />
-              </div>
+          {error && (
+            <div
+              role="alert"
+              className="mb-6 rounded-lg border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {error}
             </div>
+          )}
 
-            {/* Username Field */}
-            <div>
-              <label
-                htmlFor="username"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Username <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <UserIcon className="h-5 w-5 text-gray-400" />
+          <form onSubmit={handleSubmit} noValidate>
+            <div className="space-y-5">
+              {/* Name Fields */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="first_name"
+                    className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
+                  >
+                    First Name
+                  </label>
+                  <input
+                    id="first_name"
+                    name="first_name"
+                    type="text"
+                    className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
+                    placeholder="First name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
                 </div>
+                <div>
+                  <label
+                    htmlFor="last_name"
+                    className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
+                  >
+                    Last Name
+                  </label>
+                  <input
+                    id="last_name"
+                    name="last_name"
+                    type="text"
+                    className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
+                    placeholder="Last name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="username"
+                  className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft"
+                >
+                  <UserIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Username <span className="text-stamp-red-ink">*</span>
+                </label>
                 <input
                   id="username"
                   name="username"
                   type="text"
                   required
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  autoComplete="username"
+                  className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
                   placeholder="Choose a username"
                   value={formData.username}
                   onChange={handleInputChange}
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            {/* Email Field */}
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <EnvelopeIcon className="h-5 w-5 text-gray-400" />
-                </div>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft"
+                >
+                  <EnvelopeIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Email Address
+                </label>
                 <input
                   id="email"
                   name="email"
                   type="email"
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                  autoComplete="email"
+                  className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
                   placeholder="your.email@example.com"
                   value={formData.email}
                   onChange={handleInputChange}
                   disabled={isSubmitting}
                 />
               </div>
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Create a password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                  disabled={isSubmitting}
+              <div>
+                <label
+                  htmlFor="password"
+                  className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft"
                 >
-                  {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
-              </div>
-              <p className="mt-1 text-sm text-gray-500">
-                Must be at least 8 characters long
-              </p>
-            </div>
-
-            {/* Confirm Password Field */}
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Confirm Password <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <LockClosedIcon className="h-5 w-5 text-gray-400" />
+                  <LockClosedIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Password <span className="text-stamp-red-ink">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 pr-9 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center text-ink-soft hover:text-ink"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={isSubmitting}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeSlashIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </button>
                 </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  required
-                  className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                  placeholder="Confirm your password"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  disabled={isSubmitting}
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  disabled={isSubmitting}
+                <p className="mt-1.5 text-xs text-ink-soft">
+                  Must be at least 8 characters long
+                </p>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-ink-soft"
                 >
-                  {showConfirmPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
+                  <LockClosedIcon className="h-3.5 w-3.5" aria-hidden="true" />
+                  Confirm Password <span className="text-stamp-red-ink">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    className="block w-full border-0 border-b-2 border-paper-line bg-transparent px-0 py-2 pr-9 text-ink placeholder:text-ink-soft/60 focus:border-ink focus:outline-none focus:ring-0 disabled:opacity-50"
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    disabled={isSubmitting}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 flex items-center text-ink-soft hover:text-ink"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={isSubmitting}
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
+                  >
+                    {showConfirmPassword ? (
+                      <EyeSlashIcon className="h-5 w-5" />
+                    ) : (
+                      <EyeIcon className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <div>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="mt-8 flex w-full items-center justify-center gap-2 rounded-lg bg-ink px-4 py-3 text-sm font-semibold uppercase tracking-wide text-paper shadow-sm transition-all duration-200 hover:bg-ink/90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Creating account...</span>
-                </div>
+                <>
+                  <span
+                    className="h-4 w-4 animate-spin rounded-full border-2 border-paper/40 border-t-paper"
+                    role="status"
+                    aria-label="Creating account"
+                  ></span>
+                  Creating account&hellip;
+                </>
               ) : (
                 "Create Account"
               )}
             </button>
-          </div>
+          </form>
 
-          {/* Login Link */}
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{" "}
-              <Link
-                to="/login"
-                className="font-medium text-green-600 hover:text-green-500 transition-colors"
-              >
-                Sign in here
-              </Link>
-            </p>
-          </div>
-        </form>
+          <p className="mt-6 text-center text-sm text-ink-soft">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-semibold text-ink transition-colors hover:text-ink/70"
+            >
+              Sign in here
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

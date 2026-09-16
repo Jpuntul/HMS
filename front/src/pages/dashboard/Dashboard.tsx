@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import {
@@ -14,15 +14,6 @@ import {
   PointElement,
 } from "chart.js";
 import { Bar, Pie, Line } from "react-chartjs-2";
-import {
-  ChartBarIcon,
-  UsersIcon,
-  BuildingOffice2Icon,
-  UserGroupIcon,
-  TruckIcon,
-  ShieldCheckIcon,
-  ExclamationTriangleIcon,
-} from "@heroicons/react/24/outline";
 
 // Register Chart.js components
 ChartJS.register(
@@ -93,6 +84,137 @@ interface HealthStats {
   }>;
 }
 
+// Chart palette drawn from the Access & Roster tokens - replaces the
+// previous rainbow of stock hex codes. No color here is chosen for
+// variety; each slot is picked so adjacent wedges/bars stay
+// distinguishable at a glance.
+const CHART_PALETTE = [
+  "#34383f", // ink
+  "#a8382c", // stamp-red
+  "#2c7350", // verified-green
+  "#9c7112", // pending-amber
+  "#7a7e85", // ink-soft
+  "#21847a", // role-nurse (teal)
+  "#2c4c82", // role-doctor (steel blue)
+  "#6a4a8f", // role-pharmacist (violet)
+];
+
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: "bottom" as const,
+      labels: {
+        color: "#34383f",
+        font: { family: "Space Grotesk", size: 12 },
+        boxWidth: 12,
+        padding: 12,
+      },
+    },
+  },
+  scales: undefined as unknown,
+};
+
+const barLineScales = {
+  x: {
+    ticks: { color: "#7a7e85", font: { family: "Space Grotesk", size: 11 } },
+    grid: { color: "#e2e0d6" },
+  },
+  y: {
+    ticks: { color: "#7a7e85", font: { family: "Space Grotesk", size: 11 } },
+    grid: { color: "#e2e0d6" },
+  },
+};
+
+// Real role strings from Employee.role (see PRODUCT.md) mapped to a
+// compact badge abbreviation and a role color from the design tokens.
+// Abbreviation only - never a fabricated clinical role beyond what the
+// record itself says.
+const ROLE_META: Record<string, { abbr: string; color: string }> = {
+  nurse: { abbr: "RN", color: "var(--color-role-nurse)" },
+  doctor: { abbr: "MD", color: "var(--color-role-doctor)" },
+  pharmacist: { abbr: "RPH", color: "var(--color-role-pharmacist)" },
+  receptionist: { abbr: "REC", color: "var(--color-role-security)" },
+  "administrative personnel": {
+    abbr: "ADM",
+    color: "var(--color-role-admin)",
+  },
+  "security personnel": { abbr: "SEC", color: "var(--color-role-security)" },
+  cashier: { abbr: "CSH", color: "var(--color-role-cashier)" },
+  "regular employee": { abbr: "EMP", color: "var(--color-role-regular)" },
+};
+
+function roleMeta(role: string): { abbr: string; color: string } {
+  return (
+    ROLE_META[role.toLowerCase()] ?? {
+      abbr: role.slice(0, 3).toUpperCase(),
+      color: "var(--color-role-regular)",
+    }
+  );
+}
+
+/** A bordered ledger panel - the page's recurring container for charts and tables. */
+const FormPanel: React.FC<{
+  title: string;
+  children: React.ReactNode;
+  className?: string;
+}> = ({ title, children, className = "" }) => (
+  <div
+    className={`overflow-hidden rounded border-[1.5px] border-ink bg-panel ${className}`}
+  >
+    <div className="border-b border-paper-line px-5 py-3">
+      <h3 className="text-sm font-bold text-ink">{title}</h3>
+    </div>
+    <div className="p-5">{children}</div>
+  </div>
+);
+
+/** One tabular-mono figure in the system-counts ledger line. */
+const Metric: React.FC<{
+  value: string | number;
+  label: string;
+  urgent?: boolean;
+}> = ({ value, label, urgent }) => (
+  <div className="min-w-[120px] flex-1 border-r border-paper-line px-5 py-3.5 last:border-r-0">
+    <div
+      className={`font-mono text-xl font-bold tabular-nums sm:text-2xl ${
+        urgent ? "text-stamp-red-ink" : "text-ink"
+      }`}
+    >
+      {value}
+    </div>
+    <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+      {label}
+    </div>
+  </div>
+);
+
+/** One ruled line-item on a census-style panel, tag-based (not a pastel pill). */
+const CensusRow: React.FC<{
+  label: string;
+  value: string;
+  note?: string;
+  tag?: { label: string; color: string };
+}> = ({ label, value, note, tag }) => (
+  <div className="flex items-center justify-between gap-4 border-b border-paper-line py-3 last:border-b-0">
+    <div>
+      <div className="text-sm font-semibold text-ink-soft">{label}</div>
+      {note && <div className="mt-0.5 text-xs text-ink-soft">{note}</div>}
+    </div>
+    <div className="flex items-center gap-3">
+      {tag && (
+        <span className="badge-tag" style={{ background: tag.color }}>
+          {tag.label}
+        </span>
+      )}
+      <span className="font-mono text-2xl font-bold tabular-nums text-ink">
+        {value}
+      </span>
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(
     null,
@@ -146,10 +268,212 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // These derived values and chart datasets used to live after the
+  // loading/error early-returns below - reallocated (and every .map/.reduce
+  // rerun) on every render, including re-renders that changed nothing they
+  // depend on. Hooks can't run after an early return, so they're memoized
+  // here instead, above it, with null-safe fallbacks for the
+  // not-yet-loaded state.
+  const totalInfections = healthStats?.infections.length ?? 0;
+  const totalVaccinations = healthStats?.vaccinations.length ?? 0;
+
+  const uniqueVaccinatedPeople = useMemo(
+    () => new Set((healthStats?.vaccinations ?? []).map((v) => v.ssn)).size,
+    [healthStats],
+  );
+
+  const vaccinationRate = useMemo(() => {
+    const totalPersons = dashboardStats?.overview.total_persons ?? 0;
+    return totalPersons > 0
+      ? ((uniqueVaccinatedPeople / totalPersons) * 100).toFixed(1)
+      : "0";
+  }, [dashboardStats, uniqueVaccinatedPeople]);
+
+  const recentInfections = useMemo(() => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    return (healthStats?.infections ?? []).filter(
+      (inf) => new Date(inf.date) > thirtyDaysAgo,
+    ).length;
+  }, [healthStats]);
+
+  const infectionTypeCount = useMemo(
+    () =>
+      (healthStats?.infections ?? []).reduce(
+        (acc, inf) => {
+          acc[inf.infection_type_name] =
+            (acc[inf.infection_type_name] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    [healthStats],
+  );
+
+  const vaccineTypeCount = useMemo(
+    () =>
+      (healthStats?.vaccinations ?? []).reduce(
+        (acc, vac) => {
+          acc[vac.vaccine_type_name] = (acc[vac.vaccine_type_name] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    [healthStats],
+  );
+
+  const activeSchedules = useMemo(() => {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - now.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
+    return (healthStats?.schedules ?? []).filter((sch) => {
+      const schDate = new Date(sch.date);
+      return schDate >= weekStart && schDate <= weekEnd;
+    }).length;
+  }, [healthStats]);
+
+  // Facilities at or over capacity - computed from real occupancy_rate,
+  // not a fabricated count (direction contract: color/urgency is earned).
+  const atCapacityCount = useMemo(
+    () =>
+      (facilityAnalytics?.facilities ?? []).filter(
+        (f) => f.occupancy_rate >= 100,
+      ).length,
+    [facilityAnalytics],
+  );
+
+  const topFacilities = useMemo(
+    () => (facilityAnalytics?.facilities ?? []).slice(0, 6),
+    [facilityAnalytics],
+  );
+
+  const citizenshipRows = useMemo(() => {
+    const total = dashboardStats?.overview.total_persons ?? 0;
+    return (dashboardStats?.citizenship_distribution ?? [])
+      .slice()
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6)
+      .map((row) => ({
+        ...row,
+        pct: total > 0 ? ((row.count / total) * 100).toFixed(0) : "0",
+      }));
+  }, [dashboardStats]);
+
+  const employeeRoleChartData = useMemo(
+    () => ({
+      labels: (dashboardStats?.employee_roles ?? []).map(
+        (role) => role.role.charAt(0).toUpperCase() + role.role.slice(1),
+      ),
+      datasets: [
+        {
+          label: "Employee Count",
+          data: (dashboardStats?.employee_roles ?? []).map(
+            (role) => role.count,
+          ),
+          backgroundColor: CHART_PALETTE,
+          borderWidth: 2,
+          borderColor: "#f7f6f2",
+        },
+      ],
+    }),
+    [dashboardStats],
+  );
+
+  const facilityTypeChartData = useMemo(
+    () => ({
+      labels: (dashboardStats?.facility_types ?? []).map((type) => type.type),
+      datasets: [
+        {
+          label: "Facility Count",
+          data: (dashboardStats?.facility_types ?? []).map(
+            (type) => type.count,
+          ),
+          backgroundColor: CHART_PALETTE,
+          borderWidth: 2,
+          borderColor: "#f7f6f2",
+        },
+      ],
+    }),
+    [dashboardStats],
+  );
+
+  const ageGroupChartData = useMemo(
+    () => ({
+      labels: demographics?.age_distribution
+        ? Object.keys(demographics.age_distribution)
+        : [],
+      datasets: [
+        {
+          label: "Age Groups",
+          data: demographics?.age_distribution
+            ? Object.values(demographics.age_distribution)
+            : [],
+          backgroundColor: "#34383f",
+          borderWidth: 0,
+        },
+      ],
+    }),
+    [demographics],
+  );
+
+  const monthlyTrendData = useMemo(
+    () => ({
+      labels: (demographics?.monthly_trend ?? []).map((item) => item.month),
+      datasets: [
+        {
+          label: "New Registrations",
+          data: (demographics?.monthly_trend ?? []).map((item) => item.count),
+          borderColor: "#2c7350",
+          backgroundColor: "rgba(44, 115, 80, 0.12)",
+          tension: 0.3,
+          fill: true,
+        },
+      ],
+    }),
+    [demographics],
+  );
+
+  const infectionTypeChartData = useMemo(
+    () => ({
+      labels: Object.keys(infectionTypeCount),
+      datasets: [
+        {
+          label: "Infections",
+          data: Object.values(infectionTypeCount),
+          backgroundColor: CHART_PALETTE,
+          borderWidth: 2,
+          borderColor: "#f7f6f2",
+        },
+      ],
+    }),
+    [infectionTypeCount],
+  );
+
+  const vaccineTypeChartData = useMemo(
+    () => ({
+      labels: Object.keys(vaccineTypeCount),
+      datasets: [
+        {
+          label: "Vaccinations",
+          data: Object.values(vaccineTypeCount),
+          backgroundColor: "#2c7350",
+          borderWidth: 0,
+        },
+      ],
+    }),
+    [vaccineTypeCount],
+  );
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading dashboard...</div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div
+          className="h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+          role="status"
+          aria-label="Loading dashboard"
+        ></div>
       </div>
     );
   }
@@ -162,470 +486,261 @@ const Dashboard: React.FC = () => {
     !healthStats
   ) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-red-600">
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="rounded border border-stamp-red/30 bg-stamp-red/5 px-6 py-4 text-stamp-red-ink">
           {error || "Failed to load dashboard"}
         </div>
       </div>
     );
   }
 
-  // Calculate health metrics
-  const totalInfections = healthStats.infections.length;
-  const totalVaccinations = healthStats.vaccinations.length;
-  const uniqueVaccinatedPeople = new Set(
-    healthStats.vaccinations.map((v) => v.ssn),
-  ).size;
-  const vaccinationRate =
-    dashboardStats.overview.total_persons > 0
-      ? (
-          (uniqueVaccinatedPeople / dashboardStats.overview.total_persons) *
-          100
-        ).toFixed(1)
-      : 0;
-
-  // Get recent infections (last 30 days)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recentInfections = healthStats.infections.filter(
-    (inf) => new Date(inf.date) > thirtyDaysAgo,
-  ).length;
-
-  // Infection type distribution
-  const infectionTypeCount = healthStats.infections.reduce(
-    (acc, inf) => {
-      acc[inf.infection_type_name] = (acc[inf.infection_type_name] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  // Vaccine type distribution
-  const vaccineTypeCount = healthStats.vaccinations.reduce(
-    (acc, vac) => {
-      acc[vac.vaccine_type_name] = (acc[vac.vaccine_type_name] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  // Active schedules (this week)
-  const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - now.getDay());
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
-  const activeSchedules = healthStats.schedules.filter((sch) => {
-    const schDate = new Date(sch.date);
-    return schDate >= weekStart && schDate <= weekEnd;
-  }).length;
-
-  // Chart configurations
-  const employeeRoleChartData = {
-    labels: dashboardStats.employee_roles.map(
-      (role) => role.role.charAt(0).toUpperCase() + role.role.slice(1),
-    ),
-    datasets: [
-      {
-        label: "Employee Count",
-        data: dashboardStats.employee_roles.map((role) => role.count),
-        backgroundColor: [
-          "#3B82F6",
-          "#EF4444",
-          "#10B981",
-          "#F59E0B",
-          "#8B5CF6",
-          "#06B6D4",
-          "#84CC16",
-          "#F97316",
-          "#EC4899",
-        ],
-        borderWidth: 2,
-        borderColor: "#fff",
-      },
-    ],
-  };
-
-  const facilityTypeChartData = {
-    labels: dashboardStats.facility_types.map((type) => type.type),
-    datasets: [
-      {
-        label: "Facility Count",
-        data: dashboardStats.facility_types.map((type) => type.count),
-        backgroundColor: [
-          "#10B981",
-          "#3B82F6",
-          "#F59E0B",
-          "#EF4444",
-          "#8B5CF6",
-        ],
-        borderWidth: 2,
-        borderColor: "#fff",
-      },
-    ],
-  };
-
-  const ageGroupChartData = {
-    labels: demographics.age_distribution
-      ? Object.keys(demographics.age_distribution)
-      : [],
-    datasets: [
-      {
-        label: "Age Groups",
-        data: demographics.age_distribution
-          ? Object.values(demographics.age_distribution)
-          : [],
-        backgroundColor: "#3B82F6",
-        borderColor: "#1D4ED8",
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const monthlyTrendData = {
-    labels: demographics.monthly_trend.map((item) => item.month),
-    datasets: [
-      {
-        label: "New Registrations",
-        data: demographics.monthly_trend.map((item) => item.count),
-        borderColor: "#10B981",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        tension: 0.4,
-        fill: true,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-    },
-  };
+  // Thresholds for when a tag is earned rather than decorative (direction
+  // contract: color is earned, never a rainbow rotation). A 50% vaccination
+  // rate is this dashboard's own bar for "on track" vs. "needs attention" -
+  // a judgment call documented here, not a clinical standard.
+  const vaccinationOnTrack = Number(vaccinationRate) >= 50;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-3">
-            <ChartBarIcon className="h-8 w-8 text-blue-600" />
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                HMS Dashboard
-              </h1>
-              <p className="text-gray-600 mt-2">
-                Healthcare Management System Analytics
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <UsersIcon className="h-8 w-8 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  {dashboardStats.overview.total_persons.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">Total Persons</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <UserGroupIcon className="h-8 w-8 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  {dashboardStats.overview.total_employees.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">Total Employees</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <BuildingOffice2Icon className="h-8 w-8 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  {dashboardStats.overview.total_facilities}
-                </div>
-                <div className="text-sm text-gray-600">
-                  Healthcare Facilities
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <TruckIcon className="h-8 w-8 text-orange-600" />
-              </div>
-              <div className="ml-4">
-                <div className="text-2xl font-bold text-gray-900">
-                  {dashboardStats.overview.total_capacity.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-600">Total Capacity</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Health Metrics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow p-6 border border-red-200">
-            <div className="flex items-center justify-between">
+    <div className="px-4 py-6 sm:px-8 sm:py-8">
+      {/* Staff by role - real employee_roles counts, standing in for the
+          concept mock's "on duty" roster (no shift/attendance data exists
+          in this API to back a real named on-duty list). */}
+      <div className="mb-3 font-mono text-[11px] tracking-[0.14em] text-ink-soft">
+        STAFF BY ROLE
+      </div>
+      <div className="mb-8 grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-3">
+        {dashboardStats.employee_roles.map((r) => {
+          const meta = roleMeta(r.role);
+          return (
+            <div
+              key={r.role}
+              className="badge-card flex items-center gap-2.5 px-3 py-2.5"
+            >
+              <span className="badge-tag" style={{ background: meta.color }}>
+                {meta.abbr}
+              </span>
               <div>
-                <div className="text-sm font-medium text-red-600 mb-1">
-                  Total Infections
+                <div className="text-sm font-bold tabular-nums text-ink">
+                  {r.count}
                 </div>
-                <div className="text-3xl font-bold text-red-900">
-                  {totalInfections.toLocaleString()}
-                </div>
-                <div className="text-xs text-red-600 mt-2">
-                  {recentInfections} in last 30 days
+                <div className="text-[10px] capitalize text-ink-soft">
+                  {r.role}
                 </div>
               </div>
-              <ExclamationTriangleIcon className="h-12 w-12 text-red-400" />
             </div>
-          </div>
+          );
+        })}
+      </div>
 
-          <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow p-6 border border-green-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-green-600 mb-1">
-                  Total Vaccinations
-                </div>
-                <div className="text-3xl font-bold text-green-900">
-                  {totalVaccinations.toLocaleString()}
-                </div>
-                <div className="text-xs text-green-600 mt-2">
-                  {uniqueVaccinatedPeople} people vaccinated
-                </div>
-              </div>
-              <ShieldCheckIcon className="h-12 w-12 text-green-400" />
-            </div>
-          </div>
+      {/* System counts ledger line */}
+      <div className="mb-8 flex flex-wrap items-stretch border-y-[1.5px] border-ink">
+        <Metric
+          value={dashboardStats.overview.total_persons.toLocaleString()}
+          label="PATIENTS"
+        />
+        <Metric
+          value={dashboardStats.overview.total_employees.toLocaleString()}
+          label="STAFF"
+        />
+        <Metric
+          value={dashboardStats.overview.total_facilities.toString()}
+          label="FACILITIES"
+        />
+        <Metric value={`${vaccinationRate}%`} label="VACCINATED" />
+        <Metric
+          value={atCapacityCount}
+          label="AT CAPACITY"
+          urgent={atCapacityCount > 0}
+        />
+      </div>
 
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow p-6 border border-blue-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-blue-600 mb-1">
-                  Vaccination Rate
-                </div>
-                <div className="text-3xl font-bold text-blue-900">
-                  {vaccinationRate}%
-                </div>
-                <div className="text-xs text-blue-600 mt-2">
-                  of total population
-                </div>
-              </div>
-              <ChartBarIcon className="h-12 w-12 text-blue-400" />
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow p-6 border border-purple-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-purple-600 mb-1">
-                  Active Schedules
-                </div>
-                <div className="text-3xl font-bold text-purple-900">
-                  {activeSchedules}
-                </div>
-                <div className="text-xs text-purple-600 mt-2">
-                  shifts this week
-                </div>
-              </div>
-              <UserGroupIcon className="h-12 w-12 text-purple-400" />
-            </div>
-          </div>
-        </div>
-
-        {/* Charts Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Employee Roles Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Employee Distribution by Role
-            </h3>
-            <div className="h-64">
-              <Pie data={employeeRoleChartData} options={chartOptions} />
-            </div>
-          </div>
-
-          {/* Facility Types Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Facilities by Type
-            </h3>
-            <div className="h-64">
-              <Pie data={facilityTypeChartData} options={chartOptions} />
-            </div>
-          </div>
-
-          {/* Age Distribution Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Age Distribution
-            </h3>
-            <div className="h-64">
-              <Bar data={ageGroupChartData} options={chartOptions} />
-            </div>
-          </div>
-
-          {/* Monthly Trend Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Registration Trend
-            </h3>
-            <div className="h-64">
-              <Line data={monthlyTrendData} options={chartOptions} />
-            </div>
-          </div>
-
-          {/* Infection Types Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Infection Types Distribution
-            </h3>
-            <div className="h-64">
-              <Pie
-                data={{
-                  labels: Object.keys(infectionTypeCount),
-                  datasets: [
-                    {
-                      label: "Infections",
-                      data: Object.values(infectionTypeCount),
-                      backgroundColor: [
-                        "#EF4444",
-                        "#F97316",
-                        "#F59E0B",
-                        "#EAB308",
-                        "#84CC16",
-                        "#22C55E",
-                        "#10B981",
-                        "#14B8A6",
-                      ],
-                      borderWidth: 2,
-                      borderColor: "#fff",
-                    },
-                  ],
-                }}
-                options={chartOptions}
-              />
-            </div>
-          </div>
-
-          {/* Vaccine Types Chart */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              Vaccine Types Distribution
-            </h3>
-            <div className="h-64">
-              <Bar
-                data={{
-                  labels: Object.keys(vaccineTypeCount),
-                  datasets: [
-                    {
-                      label: "Vaccinations",
-                      data: Object.values(vaccineTypeCount),
-                      backgroundColor: "#10B981",
-                      borderColor: "#059669",
-                      borderWidth: 1,
-                    },
-                  ],
-                }}
-                options={chartOptions}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Top Facilities Table */}
-        <div className="bg-white rounded-lg shadow mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">
-              Top Facilities by Capacity
-            </h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Facility Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Type
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Capacity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Location
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Occupancy Rate
-                  </th>
+      {/* Top facilities + citizenship split */}
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px]">
+        <FormPanel title="Top Facilities by Capacity">
+          <div className="-m-5 overflow-x-auto">
+            <table className="w-full min-w-[520px]">
+              <thead>
+                <tr className="border-b-[1.5px] border-ink text-left text-[10.5px] font-medium uppercase tracking-[0.1em] text-ink-soft">
+                  <th className="px-5 pb-2.5 pt-0">Facility</th>
+                  <th className="px-5 pb-2.5 pt-0">Type</th>
+                  <th className="px-5 pb-2.5 pt-0">Capacity</th>
+                  <th className="px-5 pb-2.5 pt-0">Occupancy</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {facilityAnalytics.facilities
-                  .slice(0, 10)
-                  .map((facility, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+              <tbody>
+                {topFacilities.map((facility, index) => {
+                  const full = facility.occupancy_rate >= 100;
+                  const tone = full
+                    ? "text-stamp-red-ink"
+                    : facility.occupancy_rate >= 80
+                    ? "text-pending-amber-ink"
+                    : "text-verified-green-ink";
+                  return (
+                    <tr
+                      key={index}
+                      className="border-b border-paper-line last:border-b-0"
+                    >
+                      <td className="px-5 py-3 text-sm font-bold text-ink">
                         {facility.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          {facility.type}
+                        <span className="mt-0.5 block font-mono text-[10px] font-normal text-ink-soft">
+                          {facility.city}, {facility.province}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <td className="px-5 py-3 text-sm text-ink-soft">
+                        {facility.type}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-sm tabular-nums text-ink">
                         {facility.capacity.toLocaleString()} beds
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {facility.city}, {facility.province}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        <div className="flex items-center">
-                          <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                            <div
-                              className="bg-green-600 h-2 rounded-full"
-                              style={{
-                                width: `${Math.min(
-                                  facility.occupancy_rate,
-                                  100,
-                                )}%`,
-                              }}
-                            ></div>
-                          </div>
-                          <span className="text-sm font-medium">
-                            {facility.occupancy_rate.toFixed(1)}%
+                      <td className="px-5 py-3">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`font-mono text-sm font-bold tabular-nums ${tone}`}
+                          >
+                            {facility.occupancy_rate.toFixed(0)}%
                           </span>
+                          {full && (
+                            <span
+                              className="badge-tag"
+                              style={{ background: "var(--color-stamp-red)" }}
+                            >
+                              FULL
+                            </span>
+                          )}
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
+        </FormPanel>
+
+        <FormPanel title="Citizenship">
+          <table className="w-full">
+            <tbody>
+              {citizenshipRows.map((row) => (
+                <tr
+                  key={row.citizenship}
+                  className="border-b border-paper-line last:border-b-0"
+                >
+                  <td className="py-2.5 text-sm font-medium text-ink">
+                    {row.citizenship}
+                  </td>
+                  <td className="py-2.5 text-right font-mono text-sm tabular-nums text-ink-soft">
+                    {row.pct}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FormPanel>
+      </div>
+
+      {/* Health monitoring ledger */}
+      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <FormPanel title="Health Monitoring">
+          <CensusRow
+            label="Total Infections"
+            value={totalInfections.toLocaleString()}
+            note={
+              recentInfections > 0
+                ? undefined
+                : "none recorded in the last 30 days"
+            }
+            tag={
+              recentInfections > 0
+                ? { label: "ACTIVE", color: "var(--color-stamp-red)" }
+                : undefined
+            }
+          />
+          <CensusRow
+            label="Total Vaccinations"
+            value={totalVaccinations.toLocaleString()}
+            note={`${uniqueVaccinatedPeople} people vaccinated`}
+            tag={{ label: "VERIFIED", color: "var(--color-verified-green)" }}
+          />
+          <CensusRow
+            label="Vaccination Rate"
+            value={`${vaccinationRate}%`}
+            note="of total population"
+            tag={
+              vaccinationOnTrack
+                ? { label: "ON TRACK", color: "var(--color-verified-green)" }
+                : {
+                    label: "NEEDS OUTREACH",
+                    color: "var(--color-pending-amber)",
+                  }
+            }
+          />
+          <CensusRow
+            label="Active Schedules"
+            value={activeSchedules.toString()}
+            note={
+              activeSchedules === 0
+                ? "no shifts logged in the current calendar week"
+                : "shifts this week"
+            }
+          />
+        </FormPanel>
+
+        <FormPanel title="Facilities by Type">
+          <div className="h-64">
+            <Pie
+              data={facilityTypeChartData}
+              options={{ ...chartOptions, scales: undefined }}
+            />
+          </div>
+        </FormPanel>
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <FormPanel title="Employee Distribution by Role">
+          <div className="h-64">
+            <Pie
+              data={employeeRoleChartData}
+              options={{ ...chartOptions, scales: undefined }}
+            />
+          </div>
+        </FormPanel>
+
+        <FormPanel title="Age Distribution">
+          <div className="h-64">
+            <Bar
+              data={ageGroupChartData}
+              options={{ ...chartOptions, scales: barLineScales }}
+            />
+          </div>
+        </FormPanel>
+
+        <FormPanel title="Registration Trend">
+          <div className="h-64">
+            <Line
+              data={monthlyTrendData}
+              options={{ ...chartOptions, scales: barLineScales }}
+            />
+          </div>
+        </FormPanel>
+
+        <FormPanel title="Infection Types Distribution">
+          <div className="h-64">
+            <Pie
+              data={infectionTypeChartData}
+              options={{ ...chartOptions, scales: undefined }}
+            />
+          </div>
+        </FormPanel>
+
+        <FormPanel title="Vaccine Types Distribution" className="lg:col-span-2">
+          <div className="h-64">
+            <Bar
+              data={vaccineTypeChartData}
+              options={{ ...chartOptions, scales: barLineScales }}
+            />
+          </div>
+        </FormPanel>
       </div>
     </div>
   );

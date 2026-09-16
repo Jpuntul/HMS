@@ -6,11 +6,8 @@ import {
   UserIcon,
   PencilSquareIcon,
   ArrowLeftIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  IdentificationIcon,
-  GlobeAltIcon,
 } from "@heroicons/react/24/outline";
+import StatusStamp from "../../components/StatusStamp";
 
 interface PersonData {
   ssn: number;
@@ -23,6 +20,18 @@ interface PersonData {
   email: string;
   occupation: string;
 }
+
+const Field: React.FC<{ label: string; value: string }> = ({
+  label,
+  value,
+}) => (
+  <div>
+    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+      {label}
+    </h3>
+    <p className="text-lg text-ink">{value}</p>
+  </div>
+);
 
 const PersonDetail: React.FC = () => {
   const { uuid } = useParams<{ uuid: string }>();
@@ -74,10 +83,14 @@ const PersonDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading person details...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading person details"
+          ></div>
+          <p className="mt-4 text-ink-soft">Loading person details&hellip;</p>
         </div>
       </div>
     );
@@ -85,11 +98,13 @@ const PersonDetail: React.FC = () => {
 
   if (error || !person) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || "Person not found"}</p>
-          <Link to="/persons" className="text-blue-600 hover:text-blue-700">
-            Back to Persons
+          <p className="mb-4 text-stamp-red-ink">
+            {error || "Person not found"}
+          </p>
+          <Link to="/persons" className="text-ink underline hover:text-ink/80">
+            Back to Patients
           </Link>
         </div>
       </div>
@@ -97,145 +112,65 @@ const PersonDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-paper py-8">
+      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
           <Link
             to="/persons"
-            className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
+            className="mb-4 inline-flex items-center text-ink-soft transition-colors hover:text-ink"
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
-            Back to Persons
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Back to Patients
           </Link>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <UserIcon className="h-10 w-10 text-blue-600" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <UserIcon className="h-8 w-8 flex-shrink-0 text-ink" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
+                <h1 className="text-2xl font-bold text-ink">
                   {person.first_name} {person.last_name}
                 </h1>
-                <p className="text-gray-500">
+                <p className="font-mono text-xs tracking-wide text-ink-soft">
+                  NO. {uuid?.slice(0, 8).toUpperCase()} ·{" "}
                   {calculateAge(person.dob)} years old
                 </p>
               </div>
             </div>
             <Link
               to={ROUTES.personEdit(uuid!)}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
             >
-              <PencilSquareIcon className="h-5 w-5 mr-2" />
+              <PencilSquareIcon className="h-4 w-4" />
               Edit
             </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Personal Information */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Personal Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  First Name
-                </h3>
-                <p className="text-lg text-gray-900">{person.first_name}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Last Name
-                </h3>
-                <p className="text-lg text-gray-900">{person.last_name}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Date of Birth
-                </h3>
-                <p className="text-lg text-gray-900">
-                  {formatDate(person.dob)}
-                </p>
-                <p className="text-sm text-gray-500">
-                  Age: {calculateAge(person.dob)}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Citizenship
-                </h3>
-                <p className="text-lg text-gray-900">
-                  {person.citizenship || "N/A"}
-                </p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
-                  Occupation
-                </h3>
-                <p className="text-lg text-gray-900">
-                  {person.occupation || "N/A"}
-                </p>
-              </div>
-            </div>
+        {/* Details Panel */}
+        <div className="badge-card p-8">
+          <div className="mb-6 flex items-start justify-between gap-2 border-b border-paper-line pb-4">
+            <span className="text-lg font-bold text-ink">
+              {person.first_name} {person.last_name}
+            </span>
+            <StatusStamp label="On File" tone="verified" />
           </div>
 
-          {/* Contact & ID Information */}
-          <div className="space-y-6">
-            {/* Contact Card */}
-            <div className="bg-white rounded-lg shadow-md p-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Contact
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <EnvelopeIcon className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Email</h3>
-                    <p className="text-gray-900 break-all">
-                      {person.email || "N/A"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <PhoneIcon className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Phone</h3>
-                    <p className="text-gray-900">{person.telephone || "N/A"}</p>
-                  </div>
-                </div>
-              </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <Field label="First Name" value={person.first_name} />
+            <Field label="Last Name" value={person.last_name} />
+            <div>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                Date of Birth
+              </h3>
+              <p className="text-lg text-ink">{formatDate(person.dob)}</p>
+              <p className="text-sm text-ink-soft">
+                Age: {calculateAge(person.dob)}
+              </p>
             </div>
-
-            {/* Identification Card */}
-            <div className="bg-white rounded-lg shadow-md p-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">
-                Identification
-              </h2>
-              <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <IdentificationIcon className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">SSN</h3>
-                    <p className="text-gray-900 font-mono">{person.ssn}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <GlobeAltIcon className="h-5 w-5 text-blue-600 mt-1" />
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">
-                      Medicare
-                    </h3>
-                    <p className="text-gray-900 font-mono">{person.medicare}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <Field label="Citizenship" value={person.citizenship || "N/A"} />
+            <Field label="Occupation" value={person.occupation || "N/A"} />
+            <Field label="Email" value={person.email || "N/A"} />
+            <Field label="Phone" value={person.telephone || "N/A"} />
           </div>
         </div>
       </div>
