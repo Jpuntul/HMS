@@ -1,7 +1,9 @@
 import React, {
   createContext,
+  useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -82,23 +84,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // flight at a time, every other retry waits on its promise.
   const refreshInFlight = useRef<Promise<string | null> | null>(null);
 
-  const applyTokens = (access: string, refresh: string, userPayload: User) => {
-    setAccessToken(access);
-    setUser(userPayload);
-    localStorage.setItem(ACCESS_KEY, access);
-    localStorage.setItem(REFRESH_KEY, refresh);
-    localStorage.setItem(USER_KEY, JSON.stringify(userPayload));
-    setAuthHeader(access);
-  };
+  // useCallback with empty deps: only calls stable state setters and
+  // localStorage, so identity never needs to change between renders.
+  const applyTokens = useCallback(
+    (access: string, refresh: string, userPayload: User) => {
+      setAccessToken(access);
+      setUser(userPayload);
+      localStorage.setItem(ACCESS_KEY, access);
+      localStorage.setItem(REFRESH_KEY, refresh);
+      localStorage.setItem(USER_KEY, JSON.stringify(userPayload));
+      setAuthHeader(access);
+    },
+    [],
+  );
 
-  const clearTokens = () => {
+  const clearTokens = useCallback(() => {
     setAccessToken(null);
     setUser(null);
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     setAuthHeader(null);
-  };
+  }, []);
 
   /** Use the stored refresh token to get a fresh access token. */
   const refreshAccess = async (): Promise<string | null> => {
@@ -191,40 +198,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       axios.interceptors.response.eject(interceptor);
     };
-  }, []);
+  }, [clearTokens]);
 
-  const login = async (
-    username: string,
-    password: string,
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      const res = await axios.post(
-        API_ENDPOINTS.login,
-        { username, password },
-        { headers: { Authorization: "" } },
-      );
-      const { access, refresh, user: userPayload } = res.data;
-      if (!access || !refresh || !userPayload) {
-        return { success: false, error: "Unexpected response from server" };
+  const login = useCallback(
+    async (
+      username: string,
+      password: string,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        setLoading(true);
+        const res = await axios.post(
+          API_ENDPOINTS.login,
+          { username, password },
+          { headers: { Authorization: "" } },
+        );
+        const { access, refresh, user: userPayload } = res.data;
+        if (!access || !refresh || !userPayload) {
+          return { success: false, error: "Unexpected response from server" };
+        }
+        applyTokens(access, refresh, userPayload);
+        return { success: true };
+      } catch (error) {
+        const err = error as AxiosError<{ detail?: string; error?: string }>;
+        return {
+          success: false,
+          error:
+            err.response?.data?.detail ||
+            err.response?.data?.error ||
+            "Invalid username or password",
+        };
+      } finally {
+        setLoading(false);
       }
-      applyTokens(access, refresh, userPayload);
-      return { success: true };
-    } catch (error) {
-      const err = error as AxiosError<{ detail?: string; error?: string }>;
-      return {
-        success: false,
-        error:
-          err.response?.data?.detail ||
-          err.response?.data?.error ||
-          "Invalid username or password",
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [applyTokens],
+  );
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       // Send the refresh token so the server can blacklist it - logout now
       // actually ends the session server-side, not just locally. Read from
@@ -238,40 +248,49 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } finally {
       clearTokens();
     }
-  };
+  }, [accessToken, clearTokens]);
 
-  const register = async (
-    userData: RegisterData,
-  ): Promise<{ success: boolean; error?: string }> => {
-    try {
-      setLoading(true);
-      const res = await axios.post(API_ENDPOINTS.register, userData);
-      if (res.data?.success) {
-        return { success: true };
+  const register = useCallback(
+    async (
+      userData: RegisterData,
+    ): Promise<{ success: boolean; error?: string }> => {
+      try {
+        setLoading(true);
+        const res = await axios.post(API_ENDPOINTS.register, userData);
+        if (res.data?.success) {
+          return { success: true };
+        }
+        return {
+          success: false,
+          error: res.data?.error || "Registration failed",
+        };
+      } catch (error) {
+        const err = error as AxiosError<{ error?: string }>;
+        return {
+          success: false,
+          error:
+            err.response?.data?.error || "Network error. Please try again.",
+        };
+      } finally {
+        setLoading(false);
       }
-      return {
-        success: false,
-        error: res.data?.error || "Registration failed",
-      };
-    } catch (error) {
-      const err = error as AxiosError<{ error?: string }>;
-      return {
-        success: false,
-        error: err.response?.data?.error || "Network error. Please try again.",
-      };
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    [],
+  );
 
-  const value: AuthContextType = {
-    user,
-    isAuthenticated: !!user && !!accessToken,
-    loading,
-    login,
-    logout,
-    register,
-  };
+  // Memoized so consumers only re-render when one of these actually changes,
+  // not on every AuthProvider render (e.g. from an unrelated route change).
+  const value: AuthContextType = useMemo(
+    () => ({
+      user,
+      isAuthenticated: !!user && !!accessToken,
+      loading,
+      login,
+      logout,
+      register,
+    }),
+    [user, accessToken, loading, login, logout, register],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

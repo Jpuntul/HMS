@@ -19,32 +19,30 @@ const SearchResultsHeader: React.FC<SearchResultsHeaderProps> = ({
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <MagnifyingGlassIcon className="h-5 w-5 text-blue-600" />
-          <div>
-            <span className="text-blue-900 font-medium">
-              {totalResults} result{totalResults !== 1 ? "s" : ""} found
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        <MagnifyingGlassIcon className="h-4 w-4 text-ink-soft" />
+        <div className="text-sm">
+          <span className="font-medium text-ink">
+            {totalResults} result{totalResults !== 1 ? "s" : ""} found
+          </span>
+          {searchTerm && (
+            <span className="text-ink-soft"> for "{searchTerm}"</span>
+          )}
+          {filterCount > 0 && (
+            <span className="text-ink-soft">
+              {" "}
+              with {filterCount} filter{filterCount !== 1 ? "s" : ""} applied
             </span>
-            {searchTerm && (
-              <span className="text-blue-700"> for "{searchTerm}"</span>
-            )}
-            {filterCount > 0 && (
-              <span className="text-blue-700">
-                {" "}
-                with {filterCount} filter{filterCount !== 1 ? "s" : ""} applied
-              </span>
-            )}
-          </div>
+          )}
         </div>
-        <button
-          onClick={onClearFilters}
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium px-3 py-1 rounded border border-blue-300 hover:bg-blue-100 transition-colors"
-        >
-          Clear all
-        </button>
       </div>
+      <button
+        onClick={onClearFilters}
+        className="rounded-lg border border-ink px-3 py-1 text-xs font-semibold uppercase tracking-wide text-ink transition-colors hover:bg-ink hover:text-paper"
+      >
+        Clear all
+      </button>
     </div>
   );
 };

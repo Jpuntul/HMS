@@ -1,5 +1,6 @@
 import React from "react";
 import { FunnelIcon } from "@heroicons/react/24/outline";
+import Dropdown from "./Dropdown";
 
 interface FilterOption {
   value: string;
@@ -13,6 +14,8 @@ interface FilterDropdownProps {
   onChange: (value: string) => void;
   options: FilterOption[];
   className?: string;
+  /** Stable id so the label is programmatically associated with the control. */
+  id?: string;
 }
 
 const FilterDropdown: React.FC<FilterDropdownProps> = ({
@@ -21,27 +24,42 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({
   onChange,
   options,
   className = "",
+  id,
 }) => {
+  // Falls back to a slug of the label rather than one fixed id, so two
+  // FilterDropdowns on the same page don't collide - only an explicit `id`
+  // prop is a hard guarantee.
+  const selectId = id ?? `filter-${label.toLowerCase().replace(/\s+/g, "-")}`;
+
+  // "All X" is a real, selectable option (value ""), not just placeholder
+  // text - otherwise there'd be no way to clear the filter once set.
+  const dropdownOptions = [
+    { value: "", label: `All ${label}` },
+    ...options.map((option) => ({
+      value: option.value,
+      label:
+        option.count !== undefined
+          ? `${option.label} (${option.count})`
+          : option.label,
+    })),
+  ];
+
   return (
     <div className={`relative ${className}`}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        <div className="flex items-center space-x-1">
-          <FunnelIcon className="h-4 w-4" />
-          <span>{label}</span>
-        </div>
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="block w-full pl-3 pr-10 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      <label
+        htmlFor={selectId}
+        className="mb-1 flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-ink-soft"
       >
-        <option value="">All {label}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label} {option.count !== undefined && `(${option.count})`}
-          </option>
-        ))}
-      </select>
+        <FunnelIcon className="h-3.5 w-3.5" />
+        <span>{label}</span>
+      </label>
+      <Dropdown
+        id={selectId}
+        value={value}
+        onChange={onChange}
+        options={dropdownOptions}
+        placeholder={`All ${label}`}
+      />
     </div>
   );
 };
