@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Person {
   ssn: number;
@@ -55,21 +56,10 @@ const AddEmployee: React.FC = () => {
     fetchPersons();
   }, []);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear error when user starts typing
+  const setField = (name: keyof EmployeeFormData, value: string) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -118,20 +108,29 @@ const AddEmployee: React.FC = () => {
     navigate("/employees");
   };
 
+  // Name only, never the raw SSN - a person's name plus DOB-less
+  // disambiguation is enough for this picker without exposing PII in a
+  // dropdown label (see todo/ux_accessibility_todo.md).
+  const personOptions = persons.map((person) => ({
+    value: String(person.ssn),
+    label: `${person.first_name} ${person.last_name}`,
+  }));
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <UserPlusIcon className="h-8 w-8 text-green-600" />
-            <h1 className="text-3xl font-bold text-gray-900">
-              Add New Employee
-            </h1>
+        <div className="badge-card p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <UserPlusIcon className="h-7 w-7 flex-shrink-0 text-ink" />
+            <h1 className="text-2xl font-bold text-ink">Add New Employee</h1>
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div
+              role="alert"
+              className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {errors.general}
             </div>
           )}
 
@@ -139,34 +138,27 @@ const AddEmployee: React.FC = () => {
             <div>
               <label
                 htmlFor="ssn"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
                 Select Person *
               </label>
               {personsLoading ? (
-                <div className="text-gray-500">Loading persons...</div>
+                <div className="text-sm text-ink-soft">
+                  Loading persons&hellip;
+                </div>
               ) : (
-                <select
+                <Dropdown
                   id="ssn"
-                  name="ssn"
                   value={formData.ssn}
-                  onChange={handleInputChange}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                    errors.ssn ? "border-red-500" : "border-gray-300"
-                  }`}
-                >
-                  <option value="">-- Select a person --</option>
-                  {persons.map((person) => (
-                    <option key={person.ssn} value={person.ssn}>
-                      {person.first_name} {person.last_name} (SSN: {person.ssn})
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setField("ssn", value)}
+                  options={personOptions}
+                  placeholder="-- Select a person --"
+                />
               )}
               {errors.ssn && (
-                <p className="mt-1 text-sm text-red-600">{errors.ssn}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.ssn}</p>
               )}
-              <p className="mt-1 text-sm text-gray-500">
+              <p className="mt-1 text-sm text-ink-soft">
                 Select the person who will become an employee
               </p>
             </div>
@@ -174,44 +166,35 @@ const AddEmployee: React.FC = () => {
             <div>
               <label
                 htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
                 Employee Role *
               </label>
-              <select
+              <Dropdown
                 id="role"
-                name="role"
                 value={formData.role}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.role ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <option value="">-- Select a role --</option>
-                {ROLE_CHOICES.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setField("role", value)}
+                options={ROLE_CHOICES}
+                placeholder="-- Select a role --"
+              />
               {errors.role && (
-                <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.role}</p>
               )}
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end space-x-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading || personsLoading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Adding..." : "Add Employee"}
               </button>

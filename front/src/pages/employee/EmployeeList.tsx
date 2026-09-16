@@ -1,32 +1,15 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
+import { SkeletonCards } from "../../components/Skeleton";
+import EmployeeCard, { type Employee } from "../../components/EmployeeCard";
 import { useAuth } from "../../contexts/AuthContext";
-import { API_ENDPOINTS, ROUTES } from "../../config/api";
-import {
-  UserGroupIcon,
-  PhoneIcon,
-  EnvelopeIcon,
-  IdentificationIcon,
-  EyeIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
-import { useDebounce } from "../../hooks/useDebounce";
-
-interface Employee {
-  uuid: string;
-  ssn: number;
-  role: string;
-  person_name: string;
-  person_email: string;
-  person_phone: string;
-}
+import { API_ENDPOINTS } from "../../config/api";
+import { UserGroupIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 const EmployeeList: React.FC = () => {
   const location = useLocation();
@@ -48,8 +31,8 @@ const EmployeeList: React.FC = () => {
   >([]);
   const { user } = useAuth();
 
-  // Debounce search term
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  // SearchBar debounces internally and only calls setSearchTerm once typing
+  // settles, so searchTerm here is already the settled value.
 
   // Fetch filter options on component mount
   useEffect(() => {
@@ -71,7 +54,23 @@ const EmployeeList: React.FC = () => {
 
   const itemsPerPage = 24;
 
-  const fetchEmployees = async () => {
+  // Tracks the pending "clear success message" timer so a second message
+  // (or an unmount) can cancel a still-pending one instead of leaking it.
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccessMessage = (message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMessage(message);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const fetchEmployees = async (signal?: AbortSignal) => {
     try {
       const isInitialLoad = employees.length === 0;
       if (isInitialLoad) {
@@ -84,8 +83,8 @@ const EmployeeList: React.FC = () => {
       params.append("page", currentPage.toString());
       params.append("page_size", itemsPerPage.toString());
 
-      if (debouncedSearchTerm) {
-        params.append("search", debouncedSearchTerm);
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
       if (roleFilter) {
         params.append("role", roleFilter);
@@ -95,7 +94,7 @@ const EmployeeList: React.FC = () => {
         url += `?${params.toString()}`;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, { signal });
       // Handle paginated response
       const data = response.data.results || response.data;
       setEmployees(Array.isArray(data) ? data : []);
@@ -104,39 +103,56 @@ const EmployeeList: React.FC = () => {
         Math.ceil((response.data.count || data.length) / itemsPerPage),
       );
       setLoading(false);
-    } catch {
+    } catch (err) {
+      if (axios.isCancel(err)) return;
       setError("Failed to fetch employees");
       setLoading(false);
     }
   };
 
+  // Success message from navigation state (e.g. after Add/Edit) is a
+  // one-off tied to how we arrived here, not to search/filter/page state -
+  // it has its own effect so filter changes don't re-trigger it.
   useEffect(() => {
-    fetchEmployees();
-
-    // Show success message from navigation state
     if (location.state?.message) {
-      setSuccessMessage(location.state.message);
-      setTimeout(() => setSuccessMessage(""), 5000);
-      // Clear the location state
+      showSuccessMessage(location.state.message);
       window.history.replaceState({}, document.title);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, roleFilter, currentPage]);
+  }, [location.state]);
 
-  // Reset to page 1 when search/filters change
+  // Single source of truth for fetching: page reset on filter/search change
+  // happens synchronously in the change handlers below (not a second effect
+  // reacting to the same state), so this effect fires once per settled
+  // (search, filters, page) combination instead of twice. The AbortController
+  // cancels a still-in-flight request if a newer one starts before it
+  // resolves, so a slow earlier response can never overwrite a later one.
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, roleFilter]);
+    const controller = new AbortController();
+    fetchEmployees(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, roleFilter, currentPage]);
 
-  const handleDeleteClick = (employee: Employee) => {
+  // Stable reference so EmployeeCard's React.memo isn't defeated by a new
+  // function identity on every EmployeeList render.
+  const handleDeleteClick = useCallback((employee: Employee) => {
     setEmployeeToDelete(employee);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = () => {
     fetchEmployees();
-    setSuccessMessage("Employee deleted successfully!");
-    setTimeout(() => setSuccessMessage(""), 5000);
+    showSuccessMessage("Employee deleted successfully!");
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleRoleFilterChange = (value: string) => {
+    setRoleFilter(value);
+    setCurrentPage(1);
   };
 
   const handleDeleteCancel = () => {
@@ -144,57 +160,38 @@ const EmployeeList: React.FC = () => {
     setDeleteModalOpen(false);
   };
 
-  const getRoleBadgeColor = (role: string) => {
-    const colors: { [key: string]: string } = {
-      doctor: "bg-blue-100 text-blue-800",
-      nurse: "bg-green-100 text-green-800",
-      pharmacist: "bg-purple-100 text-purple-800",
-      cashier: "bg-yellow-100 text-yellow-800",
-      receptionist: "bg-pink-100 text-pink-800",
-      "administrative personnel": "bg-gray-100 text-gray-800",
-      "security personnel": "bg-red-100 text-red-800",
-      "regular employee": "bg-indigo-100 text-indigo-800",
-    };
-    return colors[role] || "bg-gray-100 text-gray-800";
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading employees...</div>
+      <div className="min-h-screen bg-paper py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SkeletonCards columns="grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-red-600">{error}</div>
+      <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div className="rounded-lg border border-stamp-red/30 bg-stamp-red/5 px-6 py-4 text-stamp-red-ink">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Success Message */}
-        {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600">{successMessage}</p>
-          </div>
-        )}
-
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <UserGroupIcon className="h-8 w-8 text-green-600" />
+        <div className="mb-8 rounded border-[1.5px] border-ink bg-panel">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <UserGroupIcon className="h-7 w-7 flex-shrink-0 text-ink" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Employee Management
-                  </h1>
-                  <p className="text-gray-600 mt-2">
+                  <h1 className="text-2xl font-bold text-ink">Staff</h1>
+                  <p className="mt-1 text-sm text-ink-soft">
                     Manage healthcare facility staff members
                   </p>
                 </div>
@@ -202,8 +199,8 @@ const EmployeeList: React.FC = () => {
               {user && (
                 <div className="flex space-x-3">
                   <Link
-                    to="/add-employee"
-                    className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                    to="/employees/add"
+                    className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
                   >
                     <PlusIcon className="h-4 w-4" />
                     <span>Add Employee</span>
@@ -214,143 +211,87 @@ const EmployeeList: React.FC = () => {
           </div>
 
           {/* Search and Filter */}
-          <div className="px-6 py-4 border-b border-gray-200">
+          <div className="border-b border-paper-line px-6 py-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
                 <SearchBar
                   searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  placeholder="Search by name, SSN, role..."
+                  onSearchChange={handleSearchChange}
+                  placeholder="Search by name, role..."
                   label="Search"
+                  id="employee-search"
                 />
               </div>
               <FilterDropdown
                 label="Role"
                 value={roleFilter}
-                onChange={setRoleFilter}
+                onChange={handleRoleFilterChange}
                 options={roleOptions}
+                id="employee-role-filter"
               />
             </div>
           </div>
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {totalCount}
-                </div>
-                <div className="text-blue-800 font-medium">Total Employees</div>
+          <div className="flex flex-wrap items-stretch border-t-[1.5px] border-ink">
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {totalCount}
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {
-                    employees.filter(
-                      (emp) => emp.role === "doctor" || emp.role === "nurse",
-                    ).length
-                  }
-                </div>
-                <div className="text-green-800 font-medium">Medical Staff</div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL STAFF
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {new Set(employees.map((emp) => emp.role)).size}
-                </div>
-                <div className="text-purple-800 font-medium">
-                  Different Roles
-                </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-verified-green-ink">
+                {
+                  employees.filter(
+                    (emp) => emp.role === "doctor" || emp.role === "nurse",
+                  ).length
+                }
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                MEDICAL STAFF
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-pending-amber-ink">
+                {new Set(employees.map((emp) => emp.role)).size}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                DIFFERENT ROLES
               </div>
             </div>
           </div>
         </div>
 
+        {successMessage && (
+          <div className="mb-6 rounded border border-verified-green/30 bg-verified-green/5 p-4">
+            <p className="text-sm font-medium text-verified-green-ink">
+              {successMessage}
+            </p>
+          </div>
+        )}
+
         {/* Employee Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {}
           {employees.map((employee) => (
-            <div
+            <EmployeeCard
               key={employee.ssn}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {employee.person_name}
-                  </div>
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(
-                      employee.role,
-                    )}`}
-                  >
-                    {employee.role}
-                  </span>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center space-x-2">
-                    <IdentificationIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">SSN:</span>
-                    <span>{employee.ssn}</span>
-                  </div>
-
-                  {employee.person_email && (
-                    <div className="flex items-center space-x-2">
-                      <EnvelopeIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Email:</span>
-                      <span className="truncate">{employee.person_email}</span>
-                    </div>
-                  )}
-
-                  {employee.person_phone && (
-                    <div className="flex items-center space-x-2">
-                      <PhoneIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Phone:</span>
-                      <span>{employee.person_phone}</span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="flex space-x-2">
-                    <Link
-                      to={ROUTES.employeeDetail(employee.uuid)}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
-                    >
-                      <EyeIcon className="h-3 w-3" />
-                      <span>Details</span>
-                    </Link>
-                    {user && (
-                      <>
-                        <Link
-                          to={ROUTES.employeeEdit(employee.uuid)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
-                        >
-                          <PencilIcon className="h-3 w-3" />
-                          <span>Edit</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteClick(employee)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
-                        >
-                          <TrashIcon className="h-3 w-3" />
-                          <span>Delete</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+              employee={employee}
+              canWrite={!!user}
+              onDeleteClick={handleDeleteClick}
+            />
           ))}
         </div>
 
         {employees.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <UserGroupIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <div className="text-xl font-medium text-gray-900 mb-2">
+          <div className="rounded-xl border border-dashed border-paper-line bg-paper p-12 text-center">
+            <UserGroupIcon className="mx-auto mb-4 h-16 w-16 text-ink-soft/30" />
+            <div className="mb-2 text-xl font-medium text-ink">
               No employees found
             </div>
-            <div className="text-gray-600">
+            <div className="text-ink-soft">
               There are no employees in the system.
             </div>
           </div>

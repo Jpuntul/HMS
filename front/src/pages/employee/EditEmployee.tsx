@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface EmployeeFormData {
   ssn: number;
@@ -55,19 +56,10 @@ const EditEmployee: React.FC = () => {
     fetchEmployee();
   }, [uuid, navigate]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-
-    // Clear error when user starts typing
-    if (errors[name]) {
-      setErrors((prev) => ({
-        ...prev,
-        [name]: "",
-      }));
+  const setRole = (value: string) => {
+    setFormData((prev) => ({ ...prev, role: value }));
+    if (errors.role) {
+      setErrors((prev) => ({ ...prev, role: "" }));
     }
   };
 
@@ -117,84 +109,82 @@ const EditEmployee: React.FC = () => {
 
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading employee data...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading employee data"
+          ></div>
+          <p className="mt-4 text-ink-soft">Loading employee data&hellip;</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <PencilSquareIcon className="h-8 w-8 text-green-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Edit Employee</h1>
+        <div className="badge-card p-8">
+          <div className="mb-6 flex items-center gap-3">
+            <PencilSquareIcon className="h-7 w-7 flex-shrink-0 text-ink" />
+            <h1 className="text-2xl font-bold text-ink">Edit Employee</h1>
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div
+              role="alert"
+              className="mb-6 rounded border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink"
+            >
+              {errors.general}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">
+            <div className="rounded border border-paper-line bg-ink/[0.03] p-4">
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                 Employee Information
               </h3>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-ink">
                 <strong>Name:</strong> {personName}
               </p>
-              <p className="text-sm text-gray-600">
-                <strong>SSN:</strong> {formData.ssn}
+              <p className="mt-0.5 font-mono text-xs tracking-wide text-ink-soft">
+                NO. {uuid?.slice(0, 8).toUpperCase()}
               </p>
             </div>
 
             <div>
               <label
                 htmlFor="role"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft"
               >
                 Employee Role *
               </label>
-              <select
+              <Dropdown
                 id="role"
-                name="role"
                 value={formData.role}
-                onChange={handleInputChange}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-                  errors.role ? "border-red-500" : "border-gray-300"
-                }`}
-              >
-                <option value="">-- Select a role --</option>
-                {ROLE_CHOICES.map((role) => (
-                  <option key={role.value} value={role.value}>
-                    {role.label}
-                  </option>
-                ))}
-              </select>
+                onChange={setRole}
+                options={ROLE_CHOICES}
+                placeholder="-- Select a role --"
+              />
               {errors.role && (
-                <p className="mt-1 text-sm text-red-600">{errors.role}</p>
+                <p className="mt-1 text-sm text-stamp-red-ink">{errors.role}</p>
               )}
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end space-x-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded border-[1.5px] border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded border-[1.5px] border-ink bg-ink px-6 py-2 text-paper transition-colors hover:bg-ink/90 focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Updating..." : "Update Employee"}
               </button>
