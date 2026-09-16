@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install pre-commit
@@ -60,7 +60,7 @@ jobs:
       - name: Set up Python
         # Matches local dev (3.13). CompositePrimaryKey is new enough that
         # version skew between CI and dev is a real risk surface.
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
