@@ -17,9 +17,9 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
       - name: Install pre-commit
@@ -45,7 +45,10 @@ jobs:
 
     services:
       mysql:
-        image: mysql:8.0
+        # Django 6+ hard-requires MySQL 8.4+ (raises NotSupportedError below
+        # that). Production (Aiven) already runs 8.4.8 - this just brings CI
+        # in line with what's actually deployed, not a new constraint.
+        image: mysql:8.4
         env:
           MYSQL_ROOT_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
           MYSQL_DATABASE: ${{ secrets.DB_NAME }}
@@ -56,11 +59,11 @@ jobs:
         options: --health-cmd="mysqladmin ping -h localhost" --health-interval=10s --health-timeout=5s --health-retries=5
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up Python
         # Matches local dev (3.13). CompositePrimaryKey is new enough that
         # version skew between CI and dev is a real risk surface.
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.13"
 
@@ -151,9 +154,9 @@ jobs:
       run:
         working-directory: front
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 20
           cache: "npm"
