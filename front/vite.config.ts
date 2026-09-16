@@ -10,10 +10,28 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-charts": ["chart.js", "react-chartjs-2"],
-          "vendor-icons": ["@heroicons/react"],
+        // Vite 8 (Rollup) dropped the object-literal form of manualChunks -
+        // only the function form type-checks now. Same three vendor chunks
+        // as before, just expressed by matching each module's resolved path.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+          if (
+            id.includes("node_modules/react-dom/") ||
+            id.includes("node_modules/react/") ||
+            id.includes("node_modules/react-router-dom/") ||
+            id.includes("node_modules/react-router/")
+          ) {
+            return "vendor-react";
+          }
+          if (
+            id.includes("node_modules/chart.js/") ||
+            id.includes("node_modules/react-chartjs-2/")
+          ) {
+            return "vendor-charts";
+          }
+          if (id.includes("node_modules/@heroicons/react/")) {
+            return "vendor-icons";
+          }
         },
       },
     },
