@@ -88,6 +88,19 @@ jspm_packages/
 # describing still-open, unresolved findings go in notes/private/ instead -
 # nothing there is tracked, no per-file gitignore entry needed either way.
 notes/private/
+todo/
+screenshot/
+
+# Impeccable design skill - installed locally via `npx impeccable install`,
+# deliberately not tracked (third-party tool, not part of this project).
+.claude/skills/impeccable/
+.claude/agents/impeccable-*.md
+.github/skills/impeccable/
+.github/agents/impeccable-*.agent.md
+.github/hooks/
+
+# mcp
+.playwright-mcp
 
 # Build outputs
 /front/build/

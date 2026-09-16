@@ -131,7 +131,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 bg-gray-600/50 overflow-y-auto h-full w-full z-50"
+      className="fixed inset-0 z-50 h-full w-full overflow-y-auto bg-ink/40"
       // Clicking the backdrop dismisses, matching the Cancel affordance.
       onClick={() => !deleting && handleCancel()}
     >
@@ -141,14 +141,14 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
-        className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+        className="badge-card relative top-20 mx-auto w-96 max-w-[calc(100%-2rem)] bg-panel p-6"
         // Clicks inside must not bubble up to the backdrop handler above.
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mt-3 text-center">
-          <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border-[1.5px] border-stamp-red bg-stamp-red/5">
             <svg
-              className="h-6 w-6 text-red-600"
+              className="h-6 w-6 text-stamp-red-ink"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -163,18 +163,15 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
               />
             </svg>
           </div>
-          <h3
-            id={titleId}
-            className="text-lg leading-6 font-medium text-gray-900 mt-4"
-          >
+          <h3 id={titleId} className="mt-4 text-lg font-bold text-ink">
             Delete {itemType.charAt(0).toUpperCase() + itemType.slice(1)}
           </h3>
-          <div id={descriptionId} className="mt-2 px-7 py-3">
-            <p className="text-sm text-gray-500">
+          <div id={descriptionId} className="mt-2 px-2 py-3">
+            <p className="text-sm text-ink-soft">
               Are you sure you want to delete{" "}
-              <span className="font-semibold">{itemName}</span>?
+              <span className="font-semibold text-ink">{itemName}</span>?
             </p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="mt-2 text-sm text-ink-soft">
               This action cannot be undone.
             </p>
           </div>
@@ -182,20 +179,20 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
           {error && (
             <div
               role="alert"
-              className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg"
+              className="mt-3 rounded border border-stamp-red/30 bg-stamp-red/5 p-3"
             >
-              <p className="text-sm text-red-600">{error}</p>
+              <p className="text-sm text-stamp-red-ink">{error}</p>
             </div>
           )}
 
-          <div className="items-center px-4 py-3">
-            <div className="flex space-x-3">
+          <div className="items-center pt-3">
+            <div className="flex gap-3">
               <button
                 ref={cancelRef}
                 type="button"
                 onClick={handleCancel}
                 disabled={deleting}
-                className="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50"
+                className="w-full rounded border-[1.5px] border-ink px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-ink/[0.05] disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -203,7 +200,7 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
                 type="button"
                 onClick={handleDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-50"
+                className="w-full rounded border-[1.5px] border-stamp-red bg-stamp-red px-4 py-2 text-sm font-semibold text-paper transition-colors hover:bg-stamp-red-ink hover:border-stamp-red-ink disabled:opacity-50"
               >
                 {deleting ? "Deleting..." : "Delete"}
               </button>

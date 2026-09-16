@@ -1,1 +1,147 @@
 @import "tailwindcss";
+
+/*
+ * "Access & Roster" — HMS design tokens.
+ * Direction contract: .impeccable/surfaces/front-src-pages-auth-login-tsx.md
+ * Every record reads as a staff access badge, not a SaaS dashboard tile:
+ * the product's own opaque-UUID/audit identity system made literal.
+ * Single committed light world (no dark-mode flip). Role/status render as
+ * solid reversed-color tags, never a stripe or a pastel pill (a banned
+ * generic pattern — see .impeccable/reference/craft-floor.md). Replaces
+ * the "Admission & Intake" teal/paper/stamp system entirely — that world
+ * is now evidence/anti-reference, not a base to extend.
+ *
+ * Revision 2026-09-16: superseded "Clinical Console" (blue accent, dark
+ * sidebar, pill badges) and an interim "Ops Ledger" pass — both judged
+ * against this project's own AI-slop calibration before reaching the
+ * user. This is the direction the user approved, iterated live across
+ * five rounds (see the surface brief's FORM block for the full history).
+ */
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --color-paper: #f7f6f2;
+  --color-panel: #ffffff;
+  --color-paper-line: #e2e0d6;
+  --color-ink: #34383f;
+  --color-ink-soft: #7a7e85;
+
+  --color-stamp-red: #a8382c;
+  --color-stamp-red-ink: #7c2a20;
+  --color-verified-green: #2c7350;
+  --color-verified-green-ink: #205038;
+  --color-pending-amber: #9c7112;
+  --color-pending-amber-ink: #6e500c;
+
+  --color-role-nurse: #21847a;
+  --color-role-doctor: #2c4c82;
+  --color-role-pharmacist: #6a4a8f;
+  --color-role-admin: #9c7112;
+  --color-role-security: #4a4e56;
+  --color-role-cashier: #6a7a2e;
+  --color-role-regular: #62666d;
+  --color-role-patient: #62666d;
+}
+
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-feature-settings: "tnum" 1;
+}
+
+/* Solid reversed-color record tag — role and status render this way
+   everywhere (badge chips, ledger tables), never as a side stripe or a
+   tinted pastel pill (both are banned generic patterns for this system). */
+.badge-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+  color: var(--color-paper);
+  padding: 0.1875rem 0.4rem;
+  border-radius: 2px;
+}
+
+/* A physical badge object: rounded corners, ink border, punch-hole notch.
+   Reserved for actual badge-shaped elements (staff badge, roster chips) —
+   ledger tables stay hairline-ruled, never badge-shaped. */
+.badge-card,
+.badge-account {
+  position: relative;
+  border: 1.5px solid var(--color-ink);
+  border-radius: 7px;
+  background: var(--color-panel);
+}
+.badge-card::before {
+  content: "";
+  position: absolute;
+  top: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-paper);
+  border: 1.5px solid var(--color-ink);
+}
+
+/* App shell: full-width topbar above a row of [collapsible sidebar | content].
+   Sidebar width collapses to 0 rather than unmounting, so content reflows
+   smoothly instead of jumping; min-width on children stops their own text
+   from wrapping/squishing mid-transition. */
+.app-sidebar {
+  width: 224px;
+  min-width: 224px;
+  transition:
+    width 0.18s ease,
+    min-width 0.18s ease,
+    opacity 0.18s ease,
+    border-color 0.18s ease;
+}
+.app-sidebar > * {
+  min-width: 208px;
+}
+.app-sidebar.is-collapsed {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  border-color: transparent;
+  overflow: hidden;
+}
+@media (max-width: 767px) {
+  .app-sidebar {
+    width: 100%;
+    min-width: 0;
+  }
+  .app-sidebar > * {
+    min-width: 0;
+  }
+  .app-sidebar.is-collapsed {
+    height: 0;
+    border-width: 0;
+  }
+}
+
+/* One authored entrance moment for the primary form panels (Login, and
+   anywhere else a single focal panel loads in) - exponential ease-out
+   from an already-visible default, never a repeated per-section effect. */
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-panel-rise {
+    animation: panel-rise 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
