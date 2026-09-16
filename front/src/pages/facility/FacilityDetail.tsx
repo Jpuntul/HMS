@@ -10,7 +10,6 @@ import {
   PhoneIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
-
 interface FacilityData {
   fid: number;
   name: string;
@@ -25,6 +24,15 @@ interface FacilityData {
   gmssn: number;
   general_manager_name: string;
 }
+
+/** Facility type -> badge color, same mapping as FacilityCard. */
+const TYPE_COLORS: Record<string, string> = {
+  Hospital: "var(--color-role-doctor)",
+  CLSC: "var(--color-role-nurse)",
+  Clinic: "var(--color-verified-green)",
+  Pharmacy: "var(--color-role-pharmacist)",
+  "Special installment": "var(--color-role-security)",
+};
 
 const FacilityDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -56,10 +64,16 @@ const FacilityDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading facility details...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading facility details"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">
+            Loading facility details...
+          </p>
         </div>
       </div>
     );
@@ -67,12 +81,14 @@ const FacilityDetail: React.FC = () => {
 
   if (error || !facility) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error || "Facility not found"}</p>
+          <p className="mb-4 text-stamp-red-ink">
+            {error || "Facility not found"}
+          </p>
           <Link
             to="/facilities"
-            className="text-purple-600 hover:text-purple-700"
+            className="text-ink underline hover:text-ink/80"
           >
             Back to Facilities
           </Link>
@@ -82,116 +98,125 @@ const FacilityDetail: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
           <Link
             to="/facilities"
-            className="inline-flex items-center text-purple-600 hover:text-purple-700 mb-4"
+            className="mb-4 inline-flex items-center text-sm font-medium text-ink-soft transition-colors hover:text-ink"
           >
-            <ArrowLeftIcon className="h-5 w-5 mr-2" />
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
             Back to Facilities
           </Link>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <BuildingOffice2Icon className="h-10 w-10 text-purple-600" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <BuildingOffice2Icon className="h-9 w-9 flex-shrink-0 text-ink" />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  {facility.name}
-                </h1>
-                <p className="text-gray-500">
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800 mt-2">
-                    {facility.type}
-                  </span>
-                </p>
+                <h1 className="text-2xl font-bold text-ink">{facility.name}</h1>
+                <span
+                  className="badge-tag mt-1 inline-flex"
+                  style={{
+                    background:
+                      TYPE_COLORS[facility.type] ?? "var(--color-ink-soft)",
+                  }}
+                >
+                  {facility.type}
+                </span>
               </div>
             </div>
             <Link
               to={`/facilities/${id}/edit`}
-              className="inline-flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="inline-flex flex-none items-center gap-2 rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
             >
-              <PencilSquareIcon className="h-5 w-5 mr-2" />
+              <PencilSquareIcon className="h-4 w-4" />
               Edit
             </Link>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           {/* Main Details */}
-          <div className="lg:col-span-2 bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Facility Information
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="badge-card p-8 lg:col-span-2">
+            <div className="mb-6 flex items-center justify-between border-b border-paper-line pb-4">
+              <h2 className="text-sm font-bold text-ink">
+                Facility Information
+              </h2>
+              <span
+                className="badge-tag"
+                style={{ background: "var(--color-verified-green)" }}
+              >
+                ON FILE
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   Facility ID
                 </h3>
-                <p className="text-lg text-gray-900">{facility.fid}</p>
+                <p className="font-mono text-ink">{facility.fid}</p>
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   Capacity
                 </h3>
-                <p className="text-lg text-gray-900">
+                <p className="font-mono text-ink">
                   {facility.capacity || "N/A"}
                 </p>
               </div>
 
               <div className="md:col-span-2">
-                <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-2">
+                <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                   General Manager
                 </h3>
-                <p className="text-lg text-gray-900">
-                  {facility.general_manager_name}
-                </p>
-                <p className="text-sm text-gray-500">SSN: {facility.gmssn}</p>
+                <p className="text-ink">{facility.general_manager_name}</p>
               </div>
             </div>
           </div>
 
           {/* Contact Card */}
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-xl font-semibold text-gray-900 mb-6">
-              Contact
-            </h2>
+          <div className="badge-card p-8">
+            <h2 className="mb-6 text-sm font-bold text-ink">Contact</h2>
             <div className="space-y-4">
-              <div className="flex items-start space-x-3">
-                <PhoneIcon className="h-5 w-5 text-purple-600 mt-1" />
+              <div className="flex items-start gap-3">
+                <PhoneIcon className="mt-1 h-4 w-4 text-ink-soft" />
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Phone</h3>
-                  <p className="text-gray-900">{facility.phone_number}</p>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    Phone
+                  </h3>
+                  <p className="text-ink">{facility.phone_number}</p>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <GlobeAltIcon className="h-5 w-5 text-purple-600 mt-1" />
+              <div className="flex items-start gap-3">
+                <GlobeAltIcon className="mt-1 h-4 w-4 text-ink-soft" />
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Website</h3>
+                  <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                    Website
+                  </h3>
                   <a
                     href={facility.web_address}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-purple-600 hover:text-purple-700 underline break-all"
+                    className="break-all text-ink underline hover:text-ink/80"
                   >
                     {facility.web_address}
                   </a>
                 </div>
               </div>
 
-              <div className="flex items-start space-x-3">
-                <MapPinIcon className="h-5 w-5 text-purple-600 mt-1" />
+              <div className="flex items-start gap-3">
+                <MapPinIcon className="mt-1 h-4 w-4 text-ink-soft" />
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500 mb-1">
+                  <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">
                     Address
                   </h3>
-                  <p className="text-gray-900">{facility.address}</p>
-                  <p className="text-gray-900">
+                  <p className="text-ink">{facility.address}</p>
+                  <p className="text-ink">
                     {facility.city}, {facility.province}
                   </p>
-                  <p className="text-gray-900">{facility.postal_code}</p>
+                  <p className="text-ink">{facility.postal_code}</p>
                 </div>
               </div>
             </div>

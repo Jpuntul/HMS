@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
+import Dropdown from "../../components/Dropdown";
 
 interface Person {
   ssn: number;
@@ -31,6 +32,14 @@ const TYPE_CHOICES = [
   { value: "Pharmacy", label: "Pharmacy" },
   { value: "Special installment", label: "Special Installment" },
 ];
+
+const fieldClass = (hasError: boolean) =>
+  `block w-full border-0 border-b-2 bg-transparent px-0 py-2 text-ink placeholder:text-ink-soft/60 focus:outline-none focus:ring-0 disabled:opacity-50 ${
+    hasError ? "border-stamp-red" : "border-paper-line focus:border-ink"
+  }`;
+
+const labelClass =
+  "mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ink-soft";
 
 const EditFacility: React.FC = () => {
   const navigate = useNavigate();
@@ -80,9 +89,7 @@ const EditFacility: React.FC = () => {
     fetchData();
   }, [id, navigate]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -94,6 +101,16 @@ const EditFacility: React.FC = () => {
         ...prev,
         [name]: "",
       }));
+    }
+  };
+
+  const handleFieldChange = (
+    name: keyof FacilityFormData,
+    value: string | number,
+  ) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name as string]) {
+      setErrors((prev) => ({ ...prev, [name as string]: "" }));
     }
   };
 
@@ -152,176 +169,160 @@ const EditFacility: React.FC = () => {
     navigate("/facilities");
   };
 
+  const managerOptions = persons.map((person) => ({
+    value: person.ssn.toString(),
+    label: `${person.first_name} ${person.last_name}`,
+  }));
+
   if (initialLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-paper">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading facility data...</p>
+          <div
+            className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-paper-line border-t-ink"
+            role="status"
+            aria-label="Loading facility data"
+          ></div>
+          <p className="mt-4 text-sm text-ink-soft">Loading facility data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-lg shadow-md p-8">
-          <div className="flex items-center space-x-3 mb-6">
-            <PencilSquareIcon className="h-8 w-8 text-purple-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Edit Facility</h1>
+        <div className="rounded-2xl border border-ink/10 bg-paper p-8 shadow-[0_2px_12px_-4px_rgba(14,61,57,0.12)]">
+          <div className="mb-6 flex items-center gap-2.5">
+            <PencilSquareIcon className="h-6 w-6 text-ink" />
+            <h1 className="font-stamp text-xl font-bold uppercase tracking-wide text-ink">
+              Edit Facility
+            </h1>
           </div>
 
           {errors.general && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600">{errors.general}</p>
+            <div className="mb-6 rounded-lg border border-stamp-red/30 bg-stamp-red/5 px-4 py-3 text-sm font-medium text-stamp-red-ink">
+              {errors.general}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Information */}
             <div>
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+              <h3 className="mb-4 text-sm font-bold text-ink">
                 Basic Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Facility Name *
-                  </label>
+                  <label className={labelClass}>Facility Name *</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.name ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.name)}
                   />
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.name}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Facility Type *
-                  </label>
-                  <select
-                    name="type"
+                  <label className={labelClass}>Facility Type *</label>
+                  <Dropdown
                     value={formData.type}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.type ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">-- Select type --</option>
-                    {TYPE_CHOICES.map((type) => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => handleFieldChange("type", v)}
+                    options={TYPE_CHOICES}
+                    placeholder="-- Select type --"
+                  />
                   {errors.type && (
-                    <p className="mt-1 text-sm text-red-600">{errors.type}</p>
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.type}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Capacity
-                  </label>
+                  <label className={labelClass}>Capacity</label>
                   <input
                     type="number"
                     name="capacity"
                     value={formData.capacity || ""}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    className={fieldClass(false)}
                   />
                 </div>
               </div>
             </div>
 
             {/* Address Information */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="border-t border-paper-line pt-6">
+              <h3 className="mb-4 text-sm font-bold text-ink">
                 Address Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Street Address *
-                  </label>
+                  <label className={labelClass}>Street Address *</label>
                   <input
                     type="text"
                     name="address"
                     value={formData.address}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.address ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.address)}
                   />
                   {errors.address && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-stamp-red-ink">
                       {errors.address}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
+                  <label className={labelClass}>City *</label>
                   <input
                     type="text"
                     name="city"
                     value={formData.city}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.city ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.city)}
                   />
                   {errors.city && (
-                    <p className="mt-1 text-sm text-red-600">{errors.city}</p>
+                    <p className="mt-1 text-sm text-stamp-red-ink">
+                      {errors.city}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Province *
-                  </label>
+                  <label className={labelClass}>Province *</label>
                   <input
                     type="text"
                     name="province"
                     value={formData.province}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.province ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.province)}
                   />
                   {errors.province && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-stamp-red-ink">
                       {errors.province}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Postal Code *
-                  </label>
+                  <label className={labelClass}>Postal Code *</label>
                   <input
                     type="text"
                     name="postal_code"
                     value={formData.postal_code}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.postal_code ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.postal_code)}
                     maxLength={6}
                   />
                   {errors.postal_code && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-stamp-red-ink">
                       {errors.postal_code}
                     </p>
                   )}
@@ -330,47 +331,39 @@ const EditFacility: React.FC = () => {
             </div>
 
             {/* Contact Information */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
+            <div className="border-t border-paper-line pt-6">
+              <h3 className="mb-4 text-sm font-bold text-ink">
                 Contact Information
               </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
+                  <label className={labelClass}>Phone Number *</label>
                   <input
                     type="tel"
                     name="phone_number"
                     value={formData.phone_number}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.phone_number ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.phone_number)}
                     maxLength={10}
                   />
                   {errors.phone_number && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-stamp-red-ink">
                       {errors.phone_number}
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Website *
-                  </label>
+                  <label className={labelClass}>Website *</label>
                   <input
                     type="url"
                     name="web_address"
                     value={formData.web_address}
                     onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.web_address ? "border-red-500" : "border-gray-300"
-                    }`}
+                    className={fieldClass(!!errors.web_address)}
                   />
                   {errors.web_address && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-stamp-red-ink">
                       {errors.web_address}
                     </p>
                   )}
@@ -379,53 +372,43 @@ const EditFacility: React.FC = () => {
             </div>
 
             {/* General Manager */}
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                Management
-              </h3>
+            <div className="border-t border-paper-line pt-6">
+              <h3 className="mb-4 text-sm font-bold text-ink">Management</h3>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  General Manager *
-                </label>
+                <label className={labelClass}>General Manager *</label>
                 {personsLoading ? (
-                  <div className="text-gray-500">Loading persons...</div>
+                  <div className="text-sm text-ink-soft">
+                    Loading persons...
+                  </div>
                 ) : (
-                  <select
-                    name="gmssn"
-                    value={formData.gmssn}
-                    onChange={handleInputChange}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${
-                      errors.gmssn ? "border-red-500" : "border-gray-300"
-                    }`}
-                  >
-                    <option value="">-- Select general manager --</option>
-                    {persons.map((person) => (
-                      <option key={person.ssn} value={person.ssn}>
-                        {person.first_name} {person.last_name} (SSN:{" "}
-                        {person.ssn})
-                      </option>
-                    ))}
-                  </select>
+                  <Dropdown
+                    value={formData.gmssn ? formData.gmssn.toString() : ""}
+                    onChange={(v) => handleFieldChange("gmssn", Number(v))}
+                    options={managerOptions}
+                    placeholder="-- Select general manager --"
+                  />
                 )}
                 {errors.gmssn && (
-                  <p className="mt-1 text-sm text-red-600">{errors.gmssn}</p>
+                  <p className="mt-1 text-sm text-stamp-red-ink">
+                    {errors.gmssn}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end gap-4 border-t border-paper-line pt-6">
               <button
                 type="button"
                 onClick={handleCancel}
-                className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="rounded-lg border border-paper-line px-6 py-2 text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink focus:outline-none focus:ring-2 focus:ring-ink/20"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-ink px-6 py-2 font-medium text-paper shadow-sm transition-all duration-200 hover:bg-ink/90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-ink focus:ring-offset-2 focus:ring-offset-paper disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? "Updating..." : "Update Facility"}
               </button>

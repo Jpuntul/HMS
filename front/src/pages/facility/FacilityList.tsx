@@ -1,41 +1,16 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
-import {
-  BuildingOfficeIcon,
-  BuildingOffice2Icon,
-  PhoneIcon,
-  MapPinIcon,
-  UserCircleIcon,
-  EyeIcon,
-  HomeIcon,
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
+import { BuildingOffice2Icon, PlusIcon } from "@heroicons/react/24/outline";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import SearchResultsHeader from "../../components/SearchResultsHeader";
 import Pagination from "../../components/Pagination";
 import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
+import { SkeletonCards } from "../../components/Skeleton";
+import FacilityCard, { type Facility } from "../../components/FacilityCard";
 import { useAuth } from "../../contexts/AuthContext";
-import { useDebounce } from "../../hooks/useDebounce";
-
-interface Facility {
-  fid: number;
-  name: string;
-  address: string;
-  city: string;
-  province: string;
-  postal_code: string;
-  phone_number: string;
-  web_address: string;
-  type: string;
-  capacity: number;
-  gmssn: number;
-  general_manager_name: string;
-}
 
 const FacilityList: React.FC = () => {
   const location = useLocation();
@@ -54,29 +29,28 @@ const FacilityList: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-  useEffect(() => {
-    fetchFacilities();
-
-    // Show success message from navigation state
-    if (location.state?.message) {
-      setSuccessMessage(location.state.message);
-      setTimeout(() => setSuccessMessage(""), 5000);
-      // Clear the location state
-      window.history.replaceState({}, document.title);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearchTerm, typeFilter, currentPage]);
-
-  // Reset to page 1 when search/filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, typeFilter]);
+  // SearchBar debounces internally and only calls setSearchTerm once typing
+  // settles, so searchTerm here is already the settled value.
 
   const itemsPerPage = 20;
 
-  const fetchFacilities = async () => {
+  // Tracks the pending "clear success message" timer so a second message
+  // (or an unmount) can cancel a still-pending one instead of leaking it.
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSuccessMessage = (message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    setSuccessMessage(message);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
+
+  const fetchFacilities = async (signal?: AbortSignal) => {
     try {
       const isInitialLoad = facilities.length === 0;
       if (isInitialLoad) {
@@ -89,8 +63,8 @@ const FacilityList: React.FC = () => {
       params.append("page", currentPage.toString());
       params.append("page_size", itemsPerPage.toString());
 
-      if (debouncedSearchTerm) {
-        params.append("search", debouncedSearchTerm);
+      if (searchTerm) {
+        params.append("search", searchTerm);
       }
       if (typeFilter) {
         params.append("type", typeFilter);
@@ -100,7 +74,7 @@ const FacilityList: React.FC = () => {
         url += `?${params.toString()}`;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(url, { signal });
       // Handle paginated response
       const data = response.data.results || response.data;
       setFacilities(Array.isArray(data) ? data : []);
@@ -109,59 +83,61 @@ const FacilityList: React.FC = () => {
         Math.ceil((response.data.count || data.length) / itemsPerPage),
       );
       setLoading(false);
-    } catch {
+    } catch (err) {
+      if (axios.isCancel(err)) return;
       setError("Failed to fetch facilities");
       setLoading(false);
     }
   };
 
-  const getTypeIcon = (type: string) => {
-    const iconProps = "h-6 w-6";
-    switch (type) {
-      case "Hospital":
-        return <BuildingOffice2Icon className={`${iconProps} text-red-600`} />;
-      case "CLSC":
-        return <BuildingOfficeIcon className={`${iconProps} text-blue-600`} />;
-      case "Clinic":
-        return <HomeIcon className={`${iconProps} text-green-600`} />;
-      case "Pharmacy":
-        return (
-          <BuildingOfficeIcon className={`${iconProps} text-purple-600`} />
-        );
-      case "Special installment":
-        return (
-          <BuildingOffice2Icon className={`${iconProps} text-yellow-600`} />
-        );
-      default:
-        return <BuildingOfficeIcon className={`${iconProps} text-gray-600`} />;
+  // Success message from navigation state (e.g. after Add/Edit) is a
+  // one-off tied to how we arrived here, not to search/filter/page state -
+  // it has its own effect so filter changes don't re-trigger it.
+  useEffect(() => {
+    if (location.state?.message) {
+      showSuccessMessage(location.state.message);
+      window.history.replaceState({}, document.title);
     }
-  };
+  }, [location.state]);
 
-  const getTypeBadgeColor = (type: string) => {
-    const colors: { [key: string]: string } = {
-      Hospital: "bg-red-100 text-red-800",
-      CLSC: "bg-blue-100 text-blue-800",
-      Clinic: "bg-green-100 text-green-800",
-      Pharmacy: "bg-purple-100 text-purple-800",
-      "Special installment": "bg-yellow-100 text-yellow-800",
-    };
-    return colors[type] || "bg-gray-100 text-gray-800";
-  };
+  // Single source of truth for fetching: page reset on filter/search change
+  // happens synchronously in the change handlers below (not a second effect
+  // reacting to the same state), so this effect fires once per settled
+  // (search, filters, page) combination instead of twice. The AbortController
+  // cancels a still-in-flight request if a newer one starts before it
+  // resolves, so a slow earlier response can never overwrite a later one.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchFacilities(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, typeFilter, currentPage]);
 
-  const handleDeleteClick = (facility: Facility) => {
+  // Stable reference so FacilityCard's React.memo isn't defeated by a new
+  // function identity on every FacilityList render.
+  const handleDeleteClick = useCallback((facility: Facility) => {
     setFacilityToDelete(facility);
     setDeleteModalOpen(true);
-  };
+  }, []);
 
   const handleDeleteConfirm = () => {
     fetchFacilities();
-    setSuccessMessage("Facility deleted successfully!");
-    setTimeout(() => setSuccessMessage(""), 5000);
+    showSuccessMessage("Facility deleted successfully!");
   };
 
   const handleDeleteCancel = () => {
     setFacilityToDelete(null);
     setDeleteModalOpen(false);
+  };
+
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleTypeFilterChange = (value: string) => {
+    setTypeFilter(value);
+    setCurrentPage(1);
   };
 
   const totalCapacity = facilities.reduce(
@@ -171,75 +147,79 @@ const FacilityList: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading facilities...</div>
+      <div className="min-h-screen bg-paper py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SkeletonCards columns="grid-cols-1 lg:grid-cols-2 xl:grid-cols-3" />
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-xl text-red-600">{error}</div>
+      <div className="flex min-h-screen items-center justify-center bg-paper">
+        <div className="rounded border border-stamp-red/30 bg-stamp-red/5 px-6 py-4 text-stamp-red-ink">
+          {error}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-paper py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <p className="text-green-600">{successMessage}</p>
+          <div className="mb-6 rounded border border-verified-green/30 bg-verified-green/5 p-4">
+            <p className="text-sm font-medium text-verified-green-ink">
+              {successMessage}
+            </p>
           </div>
         )}
 
         {/* Header */}
-        <div className="bg-white shadow-sm rounded-lg mb-8">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-3">
-                <BuildingOffice2Icon className="h-8 w-8 text-purple-600" />
+        <div className="mb-8 rounded border-[1.5px] border-ink bg-panel">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <BuildingOffice2Icon className="h-7 w-7 flex-shrink-0 text-ink" />
                 <div>
-                  <h1 className="text-3xl font-bold text-gray-900">
-                    Facility Management
-                  </h1>
-                  <p className="text-gray-600 mt-2">
+                  <h1 className="text-2xl font-bold text-ink">Facilities</h1>
+                  <p className="mt-1 text-sm text-ink-soft">
                     Healthcare facilities across the network
                   </p>
                 </div>
               </div>
               {user && (
-                <div className="flex space-x-3">
-                  <Link
-                    to="/add-facility"
-                    className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    <PlusIcon className="h-4 w-4" />
-                    <span>Add Facility</span>
-                  </Link>
-                </div>
+                <Link
+                  to="/facilities/add"
+                  className="flex flex-none items-center gap-2 whitespace-nowrap rounded border-[1.5px] border-ink bg-ink px-4 py-2 font-medium text-paper transition-colors hover:bg-ink/90"
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  <span>Add Facility</span>
+                </Link>
               )}
             </div>
           </div>
 
           {/* Search and Filter */}
-          <div className="px-6 py-4 border-b border-gray-200">
-            <div className="flex flex-col sm:flex-row gap-4">
+          <div className="border-b border-paper-line px-6 py-4">
+            <div className="flex flex-col gap-4 sm:flex-row">
               <div className="flex-1">
                 <SearchBar
                   searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
+                  onSearchChange={handleSearchChange}
                   placeholder="Search facilities by name, address, or city..."
                   label="Search"
+                  id="facility-search"
                 />
               </div>
               <div className="w-full sm:w-64">
                 <FilterDropdown
                   label="Type"
                   value={typeFilter}
-                  onChange={setTypeFilter}
+                  onChange={handleTypeFilterChange}
+                  id="facility-type-filter"
                   options={[
                     {
                       value: "Hospital",
@@ -279,7 +259,7 @@ const FacilityList: React.FC = () => {
 
           {/* Search Results Header */}
           {(searchTerm || typeFilter) && (
-            <div className="px-6 py-3 bg-blue-50 border-b border-gray-200">
+            <div className="border-b border-paper-line bg-ink/[0.03] px-6 py-3">
               <SearchResultsHeader
                 totalResults={facilities.length}
                 searchTerm={searchTerm}
@@ -287,156 +267,72 @@ const FacilityList: React.FC = () => {
                 onClearFilters={() => {
                   setSearchTerm("");
                   setTypeFilter("");
+                  setCurrentPage(1);
                 }}
               />
             </div>
           )}
 
           {/* Stats */}
-          <div className="px-6 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">
-                  {facilities.length}
-                </div>
-                <div className="text-blue-800 font-medium">
-                  Total Facilities
-                </div>
+          <div className="flex flex-wrap items-stretch border-t-[1.5px] border-ink">
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-ink">
+                {facilities.length}
               </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-red-600">
-                  {facilities.filter((f) => f.type === "Hospital").length}
-                </div>
-                <div className="text-red-800 font-medium">Hospitals</div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL FACILITIES
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {
-                    facilities.filter(
-                      (f) => f.type === "Clinic" || f.type === "CLSC",
-                    ).length
-                  }
-                </div>
-                <div className="text-green-800 font-medium">
-                  Clinics & CLSCs
-                </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-stamp-red-ink">
+                {facilities.filter((f) => f.type === "Hospital").length}
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {totalCapacity.toLocaleString()}
-                </div>
-                <div className="text-purple-800 font-medium">
-                  Total Capacity
-                </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                HOSPITALS
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-verified-green-ink">
+                {
+                  facilities.filter(
+                    (f) => f.type === "Clinic" || f.type === "CLSC",
+                  ).length
+                }
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                CLINICS &amp; CLSCS
+              </div>
+            </div>
+            <div className="min-w-[140px] flex-1 border-r border-paper-line px-6 py-3.5 last:border-r-0">
+              <div className="font-mono text-xl font-bold tabular-nums text-pending-amber-ink">
+                {totalCapacity.toLocaleString()}
+              </div>
+              <div className="mt-0.5 text-[10px] font-medium tracking-[0.08em] text-ink-soft">
+                TOTAL CAPACITY
               </div>
             </div>
           </div>
         </div>
 
         {/* Facility Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
           {facilities.map((facility) => (
-            <div
+            <FacilityCard
               key={facility.fid}
-              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow"
-            >
-              <div className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0">
-                      {getTypeIcon(facility.type)}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                        {facility.name}
-                      </h3>
-                      <span
-                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getTypeBadgeColor(
-                          facility.type,
-                        )}`}
-                      >
-                        {facility.type}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-sm text-gray-600 mb-4">
-                  <div className="flex items-start space-x-2">
-                    <MapPinIcon className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <span className="font-medium">Address:</span>
-                      <span className="ml-1 line-clamp-2">
-                        {facility.address}, {facility.city}, {facility.province}{" "}
-                        {facility.postal_code}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2">
-                    <PhoneIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">Phone:</span>
-                    <span>{facility.phone_number}</span>
-                  </div>
-
-                  {facility.capacity && (
-                    <div className="flex items-center space-x-2">
-                      <BuildingOfficeIcon className="h-4 w-4 text-gray-400" />
-                      <span className="font-medium">Capacity:</span>
-                      <span className="font-semibold text-blue-600">
-                        {facility.capacity} beds
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center space-x-2">
-                    <UserCircleIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">Manager:</span>
-                    <span>{facility.general_manager_name}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <div className="flex space-x-2">
-                    <Link
-                      to={`/facilities/${facility.fid}`}
-                      className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
-                    >
-                      <EyeIcon className="h-3 w-3" />
-                      <span>Details</span>
-                    </Link>
-                    {user && (
-                      <>
-                        <Link
-                          to={`/facilities/${facility.fid}/edit`}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
-                        >
-                          <PencilIcon className="h-3 w-3" />
-                          <span>Edit</span>
-                        </Link>
-                        <button
-                          onClick={() => handleDeleteClick(facility)}
-                          className="flex-1 flex items-center justify-center space-x-1 px-3 py-2 text-xs bg-red-50 text-red-600 rounded hover:bg-red-100 transition-colors"
-                        >
-                          <TrashIcon className="h-3 w-3" />
-                          <span>Delete</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
+              facility={facility}
+              canWrite={!!user}
+              onDeleteClick={handleDeleteClick}
+            />
           ))}
         </div>
 
         {facilities.length === 0 && (
-          <div className="bg-white rounded-lg shadow-md p-12 text-center">
-            <BuildingOffice2Icon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <div className="text-xl font-medium text-gray-900 mb-2">
+          <div className="rounded-xl border border-dashed border-paper-line bg-paper p-12 text-center">
+            <BuildingOffice2Icon className="mx-auto mb-4 h-16 w-16 text-ink-soft/30" />
+            <div className="mb-2 text-xl font-medium text-ink">
               No facilities found
             </div>
-            <div className="text-gray-600">
+            <div className="text-ink-soft">
               There are no facilities in the system.
             </div>
           </div>
