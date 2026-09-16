@@ -227,7 +227,9 @@ To deploy (Railway is the reference target — it offers managed **MySQL**, whic
 this schema requires; Render and Fly lead with Postgres):
 
 1. Point the platform at this repo. It will detect the `Dockerfile`.
-2. Add a **MySQL** database and load the schema into it.
+2. Add a **MySQL** database and load `back/schema.sql` into it (structure
+   only, no data — export it fresh from your own dev database first if it's
+   ever out of date: see the `mysqldump` command in `CLAUDE.md`).
 3. Set the environment variables below.
 4. Run `python manage.py migrate` **once** as a release/one-off command — it
    creates Django's own auth and session tables. It does _not_ create the

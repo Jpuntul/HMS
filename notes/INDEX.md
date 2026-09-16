@@ -1,7 +1,7 @@
 # Notes Index
 
-Six dated engineering notes from one week's security-hardening pass,
-published as-is. Older notes from earlier work on this repo live in
+Dated engineering notes, published as-is. Older notes from earlier work on
+this repo live in
 `notes/private/` (gitignored wholesale, untracked) — some describe
 still-open findings that aren't ready for a public read; see "Publishing
 scope" below rather than treating this as the full history. New notes
@@ -30,6 +30,18 @@ reflect later work — that's what a newer dated note is for.
 | Note                                                           | Status                                                                                                      |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [DEPENDENCY_LOCK_2026-09-09.md](DEPENDENCY_LOCK_2026-09-09.md) | Current. Backend dependencies pinned via pip-tools; Dependabot covers pip, npm, Docker, and GitHub Actions. |
+
+## Performance
+
+| Note                                                                   | Status                                                                                                                                                                                                                                                                                                          |
+| ---------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [TODO_CHECKLIST_PASS_2026-09-10.md](TODO_CHECKLIST_PASS_2026-09-10.md) | Current. Backend query/index/caching fixes, including two live-DB schema changes (Schedules composite index, two duplicate indexes dropped), plus frontend code-splitting/memoization/re-render fixes. Redis, FULLTEXT search, and `.only()`/`.defer()` declined with cited reasoning, not deferred by default. |
+
+## Design
+
+| Note                                                                       | Status                                                                                                                                                                                                                                                                                           |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [ACCESS_ROSTER_ROLLOUT_2026-09-16.md](ACCESS_ROSTER_ROLLOUT_2026-09-16.md) | Current. Finishes the "Access & Roster" redesign's app-wide rollout (Employee/Facility/Schedule/Infection/Vaccination plus the four surfaces the pilot pass missed), fixes a mobile table-scroll bug, and removes opportunistic SSN display instances. SSN/Medicare masking _policy_ stays open. |
 
 ---
 

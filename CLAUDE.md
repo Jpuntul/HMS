@@ -8,7 +8,10 @@ Guidance for Claude Code working in this repository.
   Do not run `git commit` on your own initiative, even when the change is small
   or obviously correct.
 - **Never push or open a PR** unless I ask for it explicitly.
-- Never commit to `main` directly. Branch first.
+- **Commit directly to `main`.** This is a solo repo with no branch workflow
+  in practice — every commit in history so far is on `main`. Don't create
+  feature branches unless I ask for one for a specific reason (e.g. trying
+  something disposable).
 
 ## Project invariants
 
@@ -81,7 +84,9 @@ classes, or that model's writes go unlogged silently.
 `managed = False` means the test runner creates none of the domain tables, so
 any test touching `Person` fails on a missing table. Adding a test framework is
 not the fix; making the schema reproducible is. This decision is still open —
-see `notes/AUDIT_2026-08-18.md` §2.1.
+see `notes/AUDIT_2026-08-18.md` §2.1. `back/schema.sql` (structure only, no
+data — see Commands) is a step toward this, not the fix itself: nothing wires
+it into the test runner yet.
 
 ## Commands
 
@@ -110,6 +115,9 @@ SKIP=eslint,typescript-check,prettier .venv/bin/pre-commit run --all-files
 
 # Container
 docker build -t hms-api .
+
+# Re-export the schema (structure only, no data/PII) after any raw-SQL change
+mysqldump -u root -p --no-data --routines --triggers hms_db > back/schema.sql
 ```
 
 ## Conventions
