@@ -7,6 +7,7 @@ import DeleteConfirmationModal from "../../components/DeleteConfirmationModal";
 import SearchBar from "../../components/SearchBar";
 import { SkeletonTableRows } from "../../components/Skeleton";
 import { API_ENDPOINTS, ROUTES } from "../../config/api";
+import { PAGINATION, UI_TIMINGS } from "../../config/constants";
 import {
   ExclamationTriangleIcon,
   PlusIcon,
@@ -42,7 +43,7 @@ const InfectionList: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
 
-  const itemsPerPage = 20;
+  const itemsPerPage = PAGINATION.TABLE_PAGE_SIZE;
 
   // Tracks the pending "clear success message" timer so a second message
   // (or an unmount) can cancel a still-pending one instead of leaking it.
@@ -51,7 +52,10 @@ const InfectionList: React.FC = () => {
   const showSuccessMessage = (message: string) => {
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(message);
-    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+    successTimerRef.current = setTimeout(
+      () => setSuccessMessage(""),
+      UI_TIMINGS.SUCCESS_MESSAGE_DURATION_MS,
+    );
   };
 
   useEffect(() => {

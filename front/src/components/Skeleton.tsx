@@ -1,4 +1,5 @@
 import React from "react";
+import { GRID_LAYOUTS } from "../config/constants";
 
 interface SkeletonCardsProps {
   count?: number;
@@ -13,7 +14,7 @@ interface SkeletonCardsProps {
  */
 export const SkeletonCards: React.FC<SkeletonCardsProps> = ({
   count = 6,
-  columns = "grid-cols-1 md:grid-cols-2 lg:grid-cols-3",
+  columns = GRID_LAYOUTS.CARD_GRID,
 }) => (
   <div
     className={`grid ${columns} gap-6`}

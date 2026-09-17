@@ -2,6 +2,7 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../../config/api";
+import { PAGINATION, UI_TIMINGS } from "../../config/constants";
 import { BuildingOffice2Icon, PlusIcon } from "@heroicons/react/24/outline";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
@@ -32,7 +33,7 @@ const FacilityList: React.FC = () => {
   // SearchBar debounces internally and only calls setSearchTerm once typing
   // settles, so searchTerm here is already the settled value.
 
-  const itemsPerPage = 20;
+  const itemsPerPage = PAGINATION.TABLE_PAGE_SIZE;
 
   // Tracks the pending "clear success message" timer so a second message
   // (or an unmount) can cancel a still-pending one instead of leaking it.
@@ -41,7 +42,10 @@ const FacilityList: React.FC = () => {
   const showSuccessMessage = (message: string) => {
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(message);
-    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+    successTimerRef.current = setTimeout(
+      () => setSuccessMessage(""),
+      UI_TIMINGS.SUCCESS_MESSAGE_DURATION_MS,
+    );
   };
 
   useEffect(() => {

@@ -10,6 +10,7 @@ import React, {
 import type { ReactNode } from "react";
 import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { API_ENDPOINTS } from "../config/api";
+import { STORAGE_KEYS } from "../config/constants";
 
 interface User {
   id: number;
@@ -43,9 +44,9 @@ interface RegisterData {
   last_name?: string;
 }
 
-const ACCESS_KEY = "hms_access";
-const REFRESH_KEY = "hms_refresh";
-const USER_KEY = "hms_user";
+const ACCESS_KEY = STORAGE_KEYS.ACCESS_TOKEN;
+const REFRESH_KEY = STORAGE_KEYS.REFRESH_TOKEN;
+const USER_KEY = STORAGE_KEYS.USER;
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import { UI_TIMINGS } from "../../config/constants";
 import {
   UserIcon,
   EnvelopeIcon,
@@ -92,8 +93,11 @@ const Register: React.FC = () => {
           first_name: "",
           last_name: "",
         });
-        // Clear success message after 5 seconds
-        setTimeout(() => setSuccessMessage(""), 5000);
+        // Clear success message after duration
+        setTimeout(
+          () => setSuccessMessage(""),
+          UI_TIMINGS.SUCCESS_MESSAGE_DURATION_MS,
+        );
       }
     } catch {
       setError("An unexpected error occurred");

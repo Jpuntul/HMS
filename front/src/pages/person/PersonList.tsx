@@ -9,6 +9,7 @@ import Pagination from "../../components/Pagination";
 import { SkeletonCards } from "../../components/Skeleton";
 import PersonCard from "../../components/PersonCard";
 import { API_ENDPOINTS } from "../../config/api";
+import { PAGINATION, UI_TIMINGS, GRID_LAYOUTS } from "../../config/constants";
 import { UserIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 export interface Person {
@@ -72,7 +73,7 @@ const PersonList: React.FC = () => {
     fetchFilterOptions();
   }, []);
 
-  const itemsPerPage = 18;
+  const itemsPerPage = PAGINATION.CARD_GRID_PAGE_SIZE;
 
   // Tracks the pending "clear success message" timer so a second message
   // (or an unmount) can cancel a still-pending one instead of leaking it.
@@ -81,7 +82,10 @@ const PersonList: React.FC = () => {
   const showSuccessMessage = (message: string) => {
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(message);
-    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+    successTimerRef.current = setTimeout(
+      () => setSuccessMessage(""),
+      UI_TIMINGS.SUCCESS_MESSAGE_DURATION_MS,
+    );
   };
 
   useEffect(() => {
@@ -196,7 +200,7 @@ const PersonList: React.FC = () => {
     return (
       <div className="min-h-screen bg-paper py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SkeletonCards columns="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+          <SkeletonCards columns={GRID_LAYOUTS.CARD_GRID} />
         </div>
       </div>
     );
@@ -299,7 +303,7 @@ const PersonList: React.FC = () => {
         )}
 
         {/* Person Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid ${GRID_LAYOUTS.CARD_GRID} gap-6`}>
           {filteredPersons.map((person) => (
             <PersonCard
               key={person.medicare}

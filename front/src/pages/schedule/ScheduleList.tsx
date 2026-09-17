@@ -10,6 +10,7 @@ import { roleMeta } from "../../utils/roleMeta";
 import SearchBar from "../../components/SearchBar";
 import FilterDropdown from "../../components/FilterDropdown";
 import { API_ENDPOINTS } from "../../config/api";
+import { PAGINATION, UI_TIMINGS, GRID_LAYOUTS } from "../../config/constants";
 import {
   ClockIcon,
   PlusIcon,
@@ -39,9 +40,12 @@ const ScheduleList: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const { user } = useAuth();
 
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const debouncedSearchTerm = useDebounce(
+    searchTerm,
+    UI_TIMINGS.SEARCH_DEBOUNCE_MS,
+  );
 
-  const itemsPerPage = 18;
+  const itemsPerPage = PAGINATION.CARD_GRID_PAGE_SIZE;
 
   // Tracks the pending "clear success message" timer so a second message
   // (or an unmount) can cancel a still-pending one instead of leaking it.
@@ -50,7 +54,10 @@ const ScheduleList: React.FC = () => {
   const showSuccessMessage = (message: string) => {
     if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(message);
-    successTimerRef.current = setTimeout(() => setSuccessMessage(""), 5000);
+    successTimerRef.current = setTimeout(
+      () => setSuccessMessage(""),
+      UI_TIMINGS.SUCCESS_MESSAGE_DURATION_MS,
+    );
   };
 
   useEffect(() => {
@@ -195,7 +202,7 @@ const ScheduleList: React.FC = () => {
     return (
       <div className="min-h-screen bg-paper py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SkeletonCards columns="grid-cols-1 md:grid-cols-2 lg:grid-cols-3" />
+          <SkeletonCards columns={GRID_LAYOUTS.CARD_GRID} />
         </div>
       </div>
     );
@@ -339,7 +346,7 @@ const ScheduleList: React.FC = () => {
 
         {/* Schedules Display */}
         {viewMode === "grid" ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid ${GRID_LAYOUTS.CARD_GRID} gap-6`}>
             {schedules.map((schedule) => (
               <ScheduleCard
                 key={`${schedule.person_uuid}-${schedule.fid}-${schedule.date}-${schedule.start_time}`}
