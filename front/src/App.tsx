@@ -186,8 +186,38 @@ const AppShell: React.FC<{ children: ReactNode }> = ({ children }) => {
           </button>
           <Link
             to="/"
-            className="flex-none text-base font-bold tracking-tight text-ink"
+            className="flex flex-none items-center gap-1.5 text-base font-bold tracking-tight text-ink"
           >
+            <svg
+              viewBox="0 0 16 16"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.4}
+              className="h-4 w-4 flex-none"
+              aria-hidden="true"
+            >
+              <rect x="2" y="3.5" width="12" height="11" rx="2" />
+              <rect
+                x="6"
+                y="1.5"
+                width="4"
+                height="2.4"
+                rx="1"
+                fill="currentColor"
+                stroke="none"
+              />
+              <circle cx="5.5" cy="8" r="1.6" />
+              <line x1="9" y1="7" x2="12.5" y2="7" strokeLinecap="round" />
+              <line x1="9" y1="9" x2="12.5" y2="9" strokeLinecap="round" />
+              <line
+                x1="4"
+                y1="12"
+                x2="12"
+                y2="12"
+                strokeLinecap="round"
+                strokeWidth={1.6}
+              />
+            </svg>
             HMS
           </Link>
           <span
