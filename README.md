@@ -298,6 +298,9 @@ Automatic code quality enforcement on every commit:
 
 ### API Architecture
 
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the request-flow and data-model
+diagrams.
+
 - **Centralized Config**: All endpoints in `front/src/config/api.ts`
 - **No Hardcoded URLs**: Environment-based configuration throughout
 - **JWT Authentication**: short-lived (5 min) Bearer access tokens with
