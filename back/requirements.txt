@@ -46,7 +46,7 @@ identify==2.6.19
     # via pre-commit
 mypy-extensions==1.1.0
     # via black
-mysqlclient==2.2.8
+mysqlclient==2.3.0
     # via -r requirements.in
 nodeenv==1.10.0
     # via pre-commit
