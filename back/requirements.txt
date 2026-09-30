@@ -70,7 +70,7 @@ pytokens==0.4.1
     # via black
 pyyaml==6.0.3
     # via pre-commit
-sentry-sdk[django]==2.69.1
+sentry-sdk[django]==2.70.0
     # via -r requirements.in
 sqlparse==0.6.0
     # via django
