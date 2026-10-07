@@ -28,7 +28,7 @@ django==6.1.1
     #   sentry-sdk
 django-cors-headers==4.9.0
     # via -r requirements.in
-django-filter==26.1
+django-filter==26.2
     # via -r requirements.in
 djangorestframework==3.18.1
     # via
