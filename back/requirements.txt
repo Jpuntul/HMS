@@ -64,7 +64,7 @@ pyjwt==2.13.0
     # via djangorestframework-simplejwt
 python-discovery==1.6.0
     # via virtualenv
-python-dotenv==1.2.3
+python-dotenv==1.2.4
     # via -r requirements.in
 pytokens==0.4.1
     # via black
